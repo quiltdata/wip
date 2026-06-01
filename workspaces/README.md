@@ -62,7 +62,20 @@ shows `◌ requested`, then (with fake latency, to sell the feel) the owner "gra
 item **just appears** — under **Subscribed** in the rail, unlocked in its detail view
 (screen 24), and folded into your workspace **Packages** beside your own work.
 
-**Out of scope (per brief):** arbitrary peer-to-peer sharing; notification depth.
+**Pass 3 — the rest of the brief (done).**
+
+- **Flow 4 (interactive):** personal namespaces — packages under `ernie/` carry a
+  `🛡 yours` ownership tag (peers can't overwrite). A **Focus** control in Packages
+  ("just mine" / "hide a teammate's work") demonstrates that **filtering ≠ access
+  control** via an explicit banner — a personal view filter, never a permission change.
+- **Flows 5–8 (teasers, no faked depth):** a **Sharing model** view frames the
+  *three levels of sharing* (Volumes → user namespaces → stewardship), then roadmap
+  cards for low-friction external sharing (5), tables-as-first-class (7), and
+  collaboration/notifications (8, marked "coming soon" per the brief's guardrail).
+
+**Out of scope by design (per brief):** arbitrary peer-to-peer sharing (sharing stays
+role-scoped); notification depth. The Sharing model view states this explicitly so the
+boundary reads as intentional, not a gap.
 
 ## Assets
 
