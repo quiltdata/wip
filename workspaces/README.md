@@ -27,8 +27,8 @@ If something turns out to be wrong, update the brief at its source.
 
 ## Running it
 
-**▶ Live (always reflects the latest push):**
-<https://raw.githack.com/quiltdata/wip/260529-quilt-workspaces-wip/workspaces/index.html>
+**▶ Live (always reflects `main`):**
+<https://raw.githack.com/quiltdata/wip/main/workspaces/index.html>
 
 Or open [`index.html`](./index.html) directly in a browser — double-click it, no build,
 no server, no dependencies. It's a single self-contained file (vanilla JS + inline

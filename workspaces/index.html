@@ -1203,7 +1203,7 @@ function teaser(icon,title,tag,body){
   return `<div class="teaser">
     <div class="tz-top"><span class="tz-ico">${icon}</span>
       <span class="tz-tag" style="color:${tg[1]};border-color:${tg[1]}44">${tg[0]}</span></div>
-    <div class="tz-h">${esc(title)}</div><p>${body}</p></div>`;
+    <div class="tz-h">${esc(title)}</div><p>${esc(body)}</p></div>`;
 }
 
 /* =========================================================================
@@ -1463,19 +1463,19 @@ function toggleCart(id){
   const i=state.cart.indexOf(id);
   if(i<0) state.cart.push(id); else state.cart.splice(i,1);
 }
-let grantTimers=[];
 function sendRequests(ids){
   let n=0;
   ids.forEach((id,i)=>{
     const d=domById(id); if(!d) return;
     d.state="requested"; d.requestedAt="just now"; n++;
-    // fake latency — the owner "grants", and it just appears (the payoff)
-    grantTimers.push(setTimeout(()=>{
+    // fake latency — the owner "grants", and it just appears (the payoff).
+    // fire-and-forget: the state guard below makes a stale fire a no-op.
+    setTimeout(()=>{
       if(d.state!=="requested") return;
       d.state="granted"; d._new=true;
       toast(`<b>${esc(d.owner)}</b> granted access — <b>${esc(shortName(d))}</b> is now in your workspace`);
       render();
-    }, 2200 + i*700));
+    }, 2200 + i*700);
   });
   state.cart=[]; state.modal=null; state.view="domain"; state.domainTab="requests"; render();
   if(n) toast(`Sent ${n} request${n>1?"s":""} · owners notified`);
