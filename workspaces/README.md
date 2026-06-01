@@ -44,9 +44,25 @@ CSS) so it works offline.
 - An empty **Subscribed** rail section + **Domain** / **New asset·product** entries that
   foreshadow where pass 2 plugs in — without faking depth.
 
-**Pass 2 — shopping overlay (next):** consumer browse→inspect→request→granted and the
-publisher create→publish→shoppable→grant flows, with the live `○→◌→●` state machine and
-granted data flowing back into the **Subscribed** rail. See the brief's flows 2–3.
+**Pass 2 — shopping overlay (done).** The Domain reuses the same shell — one surface,
+three tabs:
+
+- **Browse** (consumer, screen 20): shoppable assets/products with live state badges,
+  lock glyphs, multi-select → *Request selected*.
+- **Inspect** (21): metadata + file names only, contents 🔒 until granted.
+- **Request** (22): batch-request multiple items with a message to owners.
+- **My requests** (23): per-item `◌ requested / ● granted / ✕ declined`, re-request.
+- **Published** (publisher, screen 13): your published items with inline **Grant / Decline**
+  per incoming request and a **Make shoppable** control.
+- **Create → publish → shoppable** (10·11·12): create a data asset (one Volume) or product
+  (spans Volumes), then walk the lifecycle bar.
+
+The **`○ shoppable → ◌ requested → ● granted`** state machine is live. Sending a request
+shows `◌ requested`, then (with fake latency, to sell the feel) the owner "grants" and the
+item **just appears** — under **Subscribed** in the rail, unlocked in its detail view
+(screen 24), and folded into your workspace **Packages** beside your own work.
+
+**Out of scope (per brief):** arbitrary peer-to-peer sharing; notification depth.
 
 ## Assets
 
