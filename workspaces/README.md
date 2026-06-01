@@ -18,7 +18,12 @@ the publisher/consumer user stories, the spec, and the framing/reset docs.
 
 This folder holds the generated prototype code. The brief is authoritative;
 when the two disagree, the brief wins.
-If something turns out to be wrong, use MCP to pdate the briefg.
+If something turns out to be wrong, update the brief at its source.
+
+> **Caveat:** if you have direct filesystem access to the
+> `proj/260529-quilt-workspaces` package, edit the brief there directly — you
+> don't need MCP. Use MCP (against the nightly stack) only when working remotely
+> without that local access.
 
 ## Assets
 
