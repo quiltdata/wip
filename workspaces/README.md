@@ -27,9 +27,13 @@ If something turns out to be wrong, update the brief at its source.
 
 ## Running it
 
-Open [`index.html`](./index.html) directly in a browser — double-click it, no build,
+**▶ Live (always reflects the latest push):**
+<https://raw.githack.com/quiltdata/wip/260529-quilt-workspaces-wip/workspaces/index.html>
+
+Or open [`index.html`](./index.html) directly in a browser — double-click it, no build,
 no server, no dependencies. It's a single self-contained file (vanilla JS + inline
-CSS) so it works offline.
+CSS) so it works offline. See [`DEMO.md`](./DEMO.md) for a 5-minute click-through.
+Use the `☀/☾` control (top-right) to switch dark/light.
 
 ## Status
 
