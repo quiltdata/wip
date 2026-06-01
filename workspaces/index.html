@@ -213,6 +213,21 @@
   .hint{margin-top:16px;color:var(--txt-dim);font-size:12.5px;display:flex;align-items:center;gap:8px}
   .hint .k{color:var(--txt-mut)}
 
+  /* breadcrumb + tree */
+  .crumbs{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--txt-mut);font-weight:600}
+  .crumbs .c{cursor:pointer}
+  .crumbs .c:hover{color:var(--txt)}
+  .crumbs .sep{color:var(--txt-dim);font-weight:400}
+  .crumbs .cur{color:var(--txt);cursor:default}
+  .tbl-meta{font-size:12px;color:var(--txt-dim);margin:0 2px 8px;text-align:right}
+  .tbl th.cb,.tbl td.cb{width:38px;padding-left:16px;padding-right:0}
+  .tbl input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;
+    appearance:none;border:1.5px solid var(--line);border-radius:3px;background:var(--panel)}
+  .tbl input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+  .tbl input[type=checkbox]:disabled{opacity:.4;cursor:default}
+  .nm-cell .dir{cursor:pointer}
+  .nm-cell .dir:hover{color:var(--accent)}
+
   /* ---------- placeholder (domain / publisher next) ---------- */
   .placeholder{
     margin-top:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);
@@ -277,14 +292,43 @@ const ROLES = {
       { name:"reference/hg38",           volume:"shared-ref",    owner:"core",    updated:"3mo ago",  yours:false, files:24 },
       { name:"reference/annotations",    volume:"shared-ref",    owner:"core",    updated:"3mo ago",  yours:false, files:18 },
     ],
-    objects: [
-      { path:"assay-results/incoming/2026-05-30/", kind:"folder", size:"—",      updated:"3h ago" },
-      { path:"assay-results/incoming/run-194.fastq.gz", kind:"file", size:"2.4 GB", updated:"3h ago" },
-      { path:"assay-results/incoming/run-195.fastq.gz", kind:"file", size:"2.1 GB", updated:"5h ago" },
-      { path:"study-archive/raw/cohort-2025/",     kind:"folder", size:"—",      updated:"1w ago" },
-      { path:"shared-ref/hg38/genome.fa",          kind:"file", size:"3.1 GB",  updated:"3mo ago" },
-      { path:"shared-ref/hg38/genome.fa.fai",      kind:"file", size:"12 KB",   updated:"3mo ago" },
-    ],
+    fs: {
+      "assay-results": {
+        "incoming": {
+          "2026-05-30": {
+            "run-194.fastq.gz": { __file:1, size:"2.4 GB", mod:"3h ago" },
+            "run-195.fastq.gz": { __file:1, size:"2.1 GB", mod:"5h ago" },
+          },
+          "manifest.csv": { __file:1, size:"48 KB", mod:"3h ago" },
+        },
+        "processed": {
+          "study-x": {
+            "run-001": {
+              "matrix.csv": { __file:1, size:"310 MB", mod:"2d ago" },
+              "metadata.json": { __file:1, size:"4 KB", mod:"2d ago" },
+              "qc.html": { __file:1, size:"1.2 MB", mod:"2d ago" },
+            },
+            "run-002": { "matrix.csv": { __file:1, size:"305 MB", mod:"2d ago" } },
+          },
+        },
+        ".quilt": { "packages": {}, "named_packages": {} },
+        "README.md": { __file:1, size:"2 KB", mod:"2w ago" },
+      },
+      "study-archive": {
+        "raw": { "cohort-2025": {
+          "baseline.tar.gz": { __file:1, size:"18 GB", mod:"1w ago" },
+          "followup.tar.gz": { __file:1, size:"14 GB", mod:"1w ago" },
+        }},
+        "README.md": { __file:1, size:"4 KB", mod:"1mo ago" },
+      },
+      "shared-ref": {
+        "hg38": {
+          "genome.fa": { __file:1, size:"3.1 GB", mod:"3mo ago" },
+          "genome.fa.fai": { __file:1, size:"12 KB", mod:"3mo ago" },
+        },
+        "annotations": { "genes.gtf": { __file:1, size:"1.2 GB", mod:"3mo ago" } },
+      },
+    },
     tables: [
       { name:"study_x_expression", volume:"assay-results", rows:"4.2M",  cols:18, updated:"2d ago",  yours:false },
       { name:"ernie_qc_metrics",   volume:"assay-results", rows:"1,204", cols:9,  updated:"yesterday", yours:true },
@@ -306,11 +350,25 @@ const ROLES = {
       { name:"cohort-aurora/enrollment", volume:"patient-cohorts", owner:"team-c", updated:"2w ago",  yours:false, files:212 },
       { name:"reference/hg38",           volume:"shared-ref",      owner:"core",   updated:"3mo ago", yours:false, files:24 },
     ],
-    objects: [
-      { path:"clinical-labs/intake/2026-q2/", kind:"folder", size:"—",     updated:"1h ago" },
-      { path:"clinical-labs/intake/batch-77.csv", kind:"file", size:"18 MB", updated:"1h ago" },
-      { path:"patient-cohorts/aurora/manifest.json", kind:"file", size:"320 KB", updated:"2w ago" },
-    ],
+    fs: {
+      "clinical-labs": {
+        "intake": { "2026-q2": {
+          "batch-77.csv": { __file:1, size:"18 MB", mod:"1h ago" },
+          "batch-78.csv": { __file:1, size:"21 MB", mod:"30m ago" },
+        }},
+        "validated": { "chemistry": { "panel.parquet": { __file:1, size:"410 MB", mod:"4d ago" } } },
+        "README.md": { __file:1, size:"3 KB", mod:"3w ago" },
+      },
+      "patient-cohorts": {
+        "aurora": {
+          "manifest.json": { __file:1, size:"320 KB", mod:"2w ago" },
+          "enrollment.csv": { __file:1, size:"2.1 MB", mod:"2w ago" },
+        },
+      },
+      "shared-ref": {
+        "hg38": { "genome.fa": { __file:1, size:"3.1 GB", mod:"3mo ago" } },
+      },
+    },
     tables: [
       { name:"ernie_labs_flags", volume:"clinical-labs",   rows:"312",  cols:6,  updated:"1h ago", yours:true },
       { name:"chemistry_panel",  volume:"clinical-labs",   rows:"890K", cols:31, updated:"4d ago", yours:false },
@@ -328,6 +386,7 @@ const state = {
   mode: "packages",        // objects | packages | tables
   ownerView: "smart",      // smart (yours-first) | all
   activeVolume: null,      // volume id filter, or null
+  objectPath: [],          // current dir within activeVolume (Objects tree)
   filter: "",              // table filter text
   roleMenuOpen: false,
 };
@@ -432,16 +491,18 @@ function home(r){
     </div>
 
     <div class="modebar">
-      ${modeTab("objects","Objects", r.objects.length, "raw S3 — browsable")}
+      ${modeTab("objects","Objects", countFiles(r.fs), "raw S3 — browsable")}
       ${modeTab("packages","Packages", r.packages.length, "")}
       ${modeTab("tables","Tables", r.tables.length, "tabular")}
     </div>
 
     <div class="toolbar">
-      <span class="ttl">${modeTitle()} across ${state.activeVolume?esc(state.activeVolume):"all Volumes"}</span>
+      ${state.mode==="objects"
+        ? crumbs()
+        : `<span class="ttl">${modeTitle()} across ${state.activeVolume?esc(state.activeVolume):"all Volumes"}</span>`}
       ${state.mode==="packages" ? ownerSeg() : ""}
       <label class="filter">${iconSearch(13)}
-        <input id="filterBox" type="text" placeholder="Filter ${modeTitle().toLowerCase()}"
+        <input id="filterBox" type="text" placeholder="${state.mode==="objects"?"Filter this directory by prefix":"Filter "+modeTitle().toLowerCase()}"
                value="${esc(state.filter)}" autocomplete="off"/>
       </label>
     </div>
@@ -466,7 +527,7 @@ function ownerSeg(){
 
 /* ---- the three modes ---- */
 function tableForMode(r){
-  if(state.mode==="objects")  return objectsTable(r);
+  if(state.mode==="objects")  return objectsTree(r);
   if(state.mode==="tables")   return tablesTable(r);
   return packagesTable(r);
 }
@@ -519,19 +580,67 @@ function pkgHint(){
     <b class="muted">Tables</b> for registered tabular data.</div>`;
 }
 
-function objectsTable(r){
-  let rows = r.objects.filter(o=>matchFilter(o.path));
-  if(state.activeVolume) rows = rows.filter(o=>o.path.startsWith(state.activeVolume+"/"));
-  if(rows.length===0) return emptyTable();
-  const head = `<thead><tr><th style="width:60%">Path</th><th>Size</th><th>Updated</th></tr></thead>`;
-  const body = rows.map(o=>`
-    <tr class="row">
-      <td><div class="nm-cell">${o.kind==="folder"?iconFolder():iconFile()}
-        <span class="${o.kind==='folder'?'pk':'muted'}">${esc(o.path)}</span></div></td>
-      <td class="updated">${esc(o.size)}</td>
-      <td class="updated">${esc(o.updated)}</td>
-    </tr>`).join("");
-  return `<table class="tbl">${head}<tbody>${body}</tbody></table>
+/* ---- Objects: a navigable folder tree, mirroring the Quilt bucket view ---- */
+function countFiles(node){
+  let n=0;
+  for(const k in node){ const v=node[k]; if(v&&v.__file) n++; else if(v&&typeof v==="object") n+=countFiles(v); }
+  return n;
+}
+// the directory the user is currently looking at
+function curDir(){
+  const fs=role().fs;
+  if(!state.activeVolume) return fs;                 // top level = Volumes as folders
+  let node=fs[state.activeVolume]||{};
+  for(const seg of state.objectPath){ node=(node&&node[seg])||{}; }
+  return node;
+}
+function crumbs(){
+  let html=`<div class="crumbs"><span class="c ${!state.activeVolume?'cur':''}" data-act="crumbRoot">All Volumes</span>`;
+  if(state.activeVolume){
+    const atVol = state.objectPath.length===0;
+    html+=`<span class="sep">/</span><span class="c ${atVol?'cur':''}" data-act="crumbVol">${esc(state.activeVolume)}</span>`;
+    state.objectPath.forEach((seg,i)=>{
+      const last=i===state.objectPath.length-1;
+      html+=`<span class="sep">/</span><span class="c ${last?'cur':''}" data-act="crumbSeg" data-id="${i}">${esc(seg)}</span>`;
+    });
+  }
+  return html+`</div>`;
+}
+function objectsTree(r){
+  const dir=curDir();
+  let entries=Object.entries(dir).filter(([name])=>matchFilter(name));
+  const total=Object.keys(dir).length;
+  // folders first, then files; alpha within each
+  entries.sort((a,b)=>{
+    const fa=!a[1].__file, fb=!b[1].__file;
+    if(fa!==fb) return fa?-1:1;
+    return a[0].localeCompare(b[0]);
+  });
+
+  const head=`<thead><tr>
+    <th class="cb"><input type="checkbox" disabled></th>
+    <th>Name</th><th style="width:130px">Size</th><th style="width:170px">Last modified</th>
+  </tr></thead>`;
+
+  const rows=entries.map(([name,node])=>{
+    const isFile=!!node.__file;
+    const nameCell=isFile
+      ? `<span class="muted">${esc(name)}</span>`
+      : `<span class="path dir" data-act="enterDir" data-id="${esc(name)}">${esc(name)}/</span>`;
+    return `<tr class="row">
+      <td class="cb"><input type="checkbox"></td>
+      <td><div class="nm-cell">${isFile?iconFile():iconFolder()}${nameCell}</div></td>
+      <td class="updated">${isFile?esc(node.size):"—"}</td>
+      <td class="updated">${isFile?esc(node.mod):"—"}</td>
+    </tr>`;
+  }).join("");
+
+  const showing=`<div class="tbl-meta">Showing ${entries.length} of ${total} in this directory</div>`;
+  const body = entries.length
+    ? `<table class="tbl">${head}<tbody>${rows}</tbody></table>`
+    : emptyTable();
+
+  return `${showing}${body}
     <div class="hint"><span class="k">Note</span> Raw objects are browsable here but are
     <b class="muted">never units of shopping</b> — only packages, products & tables are publishable.</div>`;
 }
@@ -648,10 +757,18 @@ function wire(){
         state.roleMenuOpen=false; render();
         toast(`Switched workspace → <b>${esc(ROLES[state.roleId].name)}</b>`); break;
       case "vol":    state.view="home"; state.mode = state.mode==="objects"?"objects":"packages";
-                     state.activeVolume = state.activeVolume===id?null:id; render(); break;
-      case "mode":   state.mode=id; refreshMain(); break;
+                     state.activeVolume = state.activeVolume===id?null:id; state.objectPath=[]; state.filter=""; render(); break;
+      case "mode":   state.mode=id; state.filter=""; refreshMain(); break;
       case "owner":  state.ownerView=id; renderTable(); refreshOwnerSeg(); break;
       case "open":   toast(`Opening package <b>${esc(id)}</b> — package detail is a later pass.`); break;
+      // Objects tree navigation
+      case "enterDir":
+        if(!state.activeVolume){ state.activeVolume=id; state.objectPath=[]; }
+        else state.objectPath=[...state.objectPath, id];
+        state.filter=""; refreshMain(); break;
+      case "crumbRoot": state.activeVolume=null; state.objectPath=[]; state.filter=""; refreshMain(); break;
+      case "crumbVol":  state.objectPath=[]; state.filter=""; refreshMain(); break;
+      case "crumbSeg":  state.objectPath=state.objectPath.slice(0,Number(id)+1); state.filter=""; refreshMain(); break;
     }
   };
   wireInputs();
