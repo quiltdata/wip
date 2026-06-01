@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quilt Workspaces — prototype</title>
+<style>
+  /* ============================================================
+     Quilt Workspaces — substrate prototype
+     Look = Flagship Pioneering (dark, editorial, red accent)
+     Feel = Quilt catalog (clean data browser)
+     Zero dependencies: vanilla JS, system fonts, opens offline.
+  ============================================================ */
+  :root{
+    --bg:        #0e0e11;
+    --panel:     #16161a;
+    --panel-2:   #1c1c21;
+    --rail:      #121215;
+    --line:      #2a2a31;
+    --line-soft: #232329;
+    --txt:       #f4f3f1;
+    --txt-mut:   #9a9aa2;
+    --txt-dim:   #6b6b73;
+    --accent:    #e8502e;   /* Flagship red-orange */
+    --accent-dim:#7c2d1c;
+    --granted:   #3ecf8e;
+    --pending:   #e0a83e;
+    --radius:    8px;
+    --rail-w:    248px;
+    --bar-h:     58px;
+    font-synthesis: none;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size:14px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{height:100vh;display:flex;flex-direction:column}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    height:var(--bar-h);flex:0 0 auto;
+    display:flex;align-items:center;gap:18px;
+    padding:0 20px;
+    background:linear-gradient(180deg,#161619,#121214);
+    border-bottom:1px solid var(--line);
+    position:relative;z-index:40;
+  }
+  .brand{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .brand .tick{width:14px;height:14px;border-radius:3px;background:var(--accent);
+    transform:rotate(45deg);flex:0 0 auto;box-shadow:0 0 0 3px rgba(232,80,46,.16)}
+  .brand b{font-weight:700;letter-spacing:-.01em}
+  .brand span{color:var(--txt-dim);font-weight:400}
+
+  .role-switch{position:relative}
+  .role-btn{
+    display:flex;align-items:center;gap:9px;cursor:pointer;
+    background:var(--panel-2);border:1px solid var(--line);
+    padding:7px 12px;border-radius:var(--radius);color:var(--txt);
+  }
+  .role-btn .lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--txt-dim)}
+  .role-btn .nm{font-weight:600}
+  .role-btn .car{color:var(--txt-dim)}
+  .role-btn:hover{border-color:#3a3a44}
+  .menu{
+    position:absolute;top:46px;left:0;min-width:280px;
+    background:var(--panel-2);border:1px solid var(--line);
+    border-radius:10px;padding:6px;box-shadow:0 18px 50px rgba(0,0,0,.55);
+  }
+  .menu .mi{display:flex;flex-direction:column;gap:1px;padding:9px 11px;border-radius:7px;cursor:pointer}
+  .menu .mi:hover{background:#26262d}
+  .menu .mi.active{background:rgba(232,80,46,.12)}
+  .menu .mi .t{font-weight:600;display:flex;align-items:center;gap:8px}
+  .menu .mi .s{font-size:12px;color:var(--txt-mut)}
+  .menu .mi.active .t::after{content:"●";color:var(--accent);font-size:9px;margin-left:auto}
+  .menu .hd{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);padding:8px 11px 4px}
+
+  .grow{flex:1 1 auto}
+  .search{
+    display:flex;align-items:center;gap:8px;width:min(420px,38vw);
+    background:var(--panel);border:1px solid var(--line);
+    padding:8px 12px;border-radius:999px;color:var(--txt-mut);
+  }
+  .search:focus-within{border-color:var(--accent-dim);background:#19191d}
+  .search svg{flex:0 0 auto}
+  .search input{
+    flex:1;background:none;border:none;outline:none;color:var(--txt);
+    font-size:13px;font-family:inherit;
+  }
+  .search input::placeholder{color:var(--txt-dim)}
+
+  .avatar{
+    width:34px;height:34px;border-radius:50%;flex:0 0 auto;
+    display:grid;place-items:center;font-size:12px;font-weight:700;
+    background:radial-gradient(120% 120% at 30% 20%,#3a3a44,#1d1d22);
+    border:1px solid var(--line);color:var(--txt);cursor:pointer;
+  }
+
+  /* ---------- body split ---------- */
+  .body{flex:1 1 auto;display:flex;min-height:0}
+
+  /* ---------- left rail ---------- */
+  .rail{
+    width:var(--rail-w);flex:0 0 var(--rail-w);
+    background:var(--rail);border-right:1px solid var(--line);
+    padding:18px 12px;overflow:auto;display:flex;flex-direction:column;gap:6px;
+  }
+  .rail .group-label{
+    font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--txt-dim);padding:6px 10px 4px;margin-top:6px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .nav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;
+    cursor:pointer;color:var(--txt-mut);font-size:13px;user-select:none}
+  .nav:hover{background:#1d1d22;color:var(--txt)}
+  .nav.active{background:rgba(232,80,46,.13);color:var(--txt)}
+  .nav.active .ico{filter:none}
+  .nav .ico{width:16px;text-align:center;flex:0 0 auto}
+  .nav .cap{flex:1}
+  .nav .badge{font-size:11px;color:var(--txt-dim)}
+  .nav.child{padding-left:34px;font-size:12.5px}
+  .nav.child .dot{color:var(--txt-dim);font-size:9px}
+  .nav.child.sel{color:var(--accent)}
+  .rail .divider{height:1px;background:var(--line-soft);margin:10px 6px}
+  .rail .cta{
+    display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;
+    cursor:pointer;color:var(--txt-mut);font-size:13px;border:1px dashed var(--line);
+  }
+  .rail .cta:hover{border-color:var(--accent-dim);color:var(--txt)}
+  .rail .cta .plus{color:var(--accent);font-weight:700}
+  .subscribed-empty{font-size:11.5px;color:var(--txt-dim);padding:2px 10px 4px;line-height:1.4}
+
+  /* ---------- main ---------- */
+  .main{flex:1 1 auto;overflow:auto;min-width:0}
+  .main-inner{padding:30px 38px 60px;max-width:1180px}
+
+  .ws-head{margin-bottom:22px}
+  .ws-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+    font-weight:600;display:flex;align-items:center;gap:8px}
+  .ws-eyebrow::before{content:"";width:22px;height:2px;background:var(--accent);display:inline-block}
+  .ws-title{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:8px 0 4px;line-height:1.05}
+  .ws-sub{color:var(--txt-mut);font-size:14px}
+  .ws-sub b{color:var(--txt);font-weight:600}
+
+  .modebar{display:flex;gap:4px;margin:24px 0 0;border-bottom:1px solid var(--line)}
+  .mode{
+    padding:10px 16px;cursor:pointer;color:var(--txt-mut);font-weight:600;font-size:13.5px;
+    border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:8px;
+  }
+  .mode:hover{color:var(--txt)}
+  .mode.active{color:var(--txt);border-bottom-color:var(--accent)}
+  .mode .ct{font-size:11px;color:var(--txt-dim);font-weight:600}
+
+  .toolbar{display:flex;align-items:center;gap:14px;margin:20px 0 12px;flex-wrap:wrap}
+  .toolbar .ttl{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
+  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .seg button{
+    background:none;border:none;color:var(--txt-mut);font-family:inherit;font-size:12.5px;
+    padding:6px 12px;cursor:pointer;font-weight:600;
+  }
+  .seg button.on{background:rgba(232,80,46,.16);color:var(--txt)}
+  .seg button:not(.on):hover{color:var(--txt)}
+  .filter{
+    margin-left:auto;display:flex;align-items:center;gap:7px;
+    background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:6px 11px;color:var(--txt-mut);
+  }
+  .filter:focus-within{border-color:var(--accent-dim)}
+  .filter input{background:none;border:none;outline:none;color:var(--txt);font-size:13px;font-family:inherit;width:170px}
+  .filter input::placeholder{color:var(--txt-dim)}
+
+  /* ---------- table ---------- */
+  .tbl{width:100%;border-collapse:collapse;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .tbl thead th{
+    text-align:left;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--txt-dim);font-weight:600;padding:11px 16px;border-bottom:1px solid var(--line);
+    background:#141418;
+  }
+  .grp-row td{
+    padding:14px 16px 7px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--txt-dim);font-weight:600;background:transparent;border:none;
+  }
+  .grp-row .you{color:var(--accent)}
+  .tbl tbody tr.row{cursor:default}
+  .tbl tbody tr.row:hover{background:#1b1b20}
+  .tbl tbody td{padding:12px 16px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  .tbl tbody tr:last-child td{border-bottom:none}
+  .nm-cell{display:flex;align-items:center;gap:11px}
+  .nm-cell .ic{color:var(--txt-dim);flex:0 0 auto}
+  .nm-cell .pk{font-weight:600}
+  .nm-cell .path{color:var(--txt);font-weight:600}
+  .nm-cell .you-tag{font-size:10px;color:var(--accent);border:1px solid var(--accent-dim);
+    padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  .muted{color:var(--txt-mut)}
+  .dim{color:var(--txt-dim)}
+  .vol-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--txt-mut);
+    background:#101014;border:1px solid var(--line);padding:3px 9px;border-radius:999px}
+  .vol-pill .d{width:6px;height:6px;border-radius:50%;background:var(--txt-dim)}
+  .owner{font-size:12.5px;color:var(--txt-mut)}
+  .updated{font-size:12.5px;color:var(--txt-mut);white-space:nowrap}
+  .row-actions{opacity:0;transition:opacity .12s}
+  tr.row:hover .row-actions{opacity:1}
+  .ghost-btn{background:none;border:1px solid var(--line);color:var(--txt-mut);
+    border-radius:6px;padding:4px 10px;font-size:12px;font-family:inherit;cursor:pointer}
+  .ghost-btn:hover{color:var(--txt);border-color:#3a3a44}
+
+  .hint{margin-top:16px;color:var(--txt-dim);font-size:12.5px;display:flex;align-items:center;gap:8px}
+  .hint .k{color:var(--txt-mut)}
+
+  /* ---------- placeholder (domain / publisher next) ---------- */
+  .placeholder{
+    margin-top:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);
+    padding:40px;text-align:left;max-width:680px;
+  }
+  .placeholder .tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .placeholder h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:10px 0 8px}
+  .placeholder p{color:var(--txt-mut);margin:0 0 14px;max-width:52ch}
+  .placeholder .steps{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .placeholder .step{display:flex;gap:10px;align-items:center;color:var(--txt-mut);font-size:13px}
+  .placeholder .step .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
+    display:grid;place-items:center;font-size:11px;color:var(--txt-dim);flex:0 0 auto}
+
+  /* ---------- toast ---------- */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2);border:1px solid var(--line);color:var(--txt);
+    padding:11px 18px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;
+    transition:.22s;box-shadow:0 14px 40px rgba(0,0,0,.5);z-index:80}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast b{color:var(--accent)}
+
+  .corner{position:fixed;bottom:12px;right:16px;font-size:10.5px;letter-spacing:.06em;
+    color:var(--txt-dim);text-transform:uppercase;z-index:5}
+  .corner b{color:var(--txt-mut)}
+
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:#2a2a31;border-radius:8px;border:3px solid var(--bg)}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="toast"></div>
+  <div class="corner">prototype · look <b>Flagship</b> · feel <b>Quilt</b></div>
+
+<script>
+/* =========================================================================
+   MOCK DATA — two roles, each its own workspace (role-switcher swaps all).
+   Personalization: packages owned by the current user (yours=true) lead.
+========================================================================= */
+const USER = { name:"Ernie", initials:"EB", handle:"ernie@acme.bio" };
+
+const ROLES = {
+  oncology: {
+    name: "Oncology Research",
+    tagline: "Translational oncology · assay + archive + reference",
+    volumes: [
+      { id:"assay-results", label:"assay-results", note:"experimental output" },
+      { id:"study-archive", label:"study-archive", note:"frozen cohorts" },
+      { id:"shared-ref",    label:"shared-ref",    note:"reference genomes" },
+    ],
+    packages: [
+      // yours — owned under the user's personal namespace, lead the view
+      { name:"ernie/study-x-draft",      volume:"assay-results", owner:"ernie@",  updated:"3h ago",   yours:true,  files:42 },
+      { name:"ernie/qc-scratch",         volume:"assay-results", owner:"ernie@",  updated:"yesterday", yours:true,  files:11 },
+      // team / role-wide
+      { name:"study-x/run-001",          volume:"assay-results", owner:"team-a",  updated:"2d ago",   yours:false, files:38 },
+      { name:"study-x/run-002",          volume:"assay-results", owner:"team-a",  updated:"2d ago",   yours:false, files:38 },
+      { name:"study-x/qc-summary",       volume:"assay-results", owner:"team-a",  updated:"2d ago",   yours:false, files:6  },
+      { name:"cohort-2025/baseline",     volume:"study-archive", owner:"team-a",  updated:"1w ago",   yours:false, files:120 },
+      { name:"cohort-2025/followup",     volume:"study-archive", owner:"maya@",   updated:"1w ago",   yours:false, files:96 },
+      { name:"reference/hg38",           volume:"shared-ref",    owner:"core",    updated:"3mo ago",  yours:false, files:24 },
+      { name:"reference/annotations",    volume:"shared-ref",    owner:"core",    updated:"3mo ago",  yours:false, files:18 },
+    ],
+    objects: [
+      { path:"assay-results/incoming/2026-05-30/", kind:"folder", size:"—",      updated:"3h ago" },
+      { path:"assay-results/incoming/run-194.fastq.gz", kind:"file", size:"2.4 GB", updated:"3h ago" },
+      { path:"assay-results/incoming/run-195.fastq.gz", kind:"file", size:"2.1 GB", updated:"5h ago" },
+      { path:"study-archive/raw/cohort-2025/",     kind:"folder", size:"—",      updated:"1w ago" },
+      { path:"shared-ref/hg38/genome.fa",          kind:"file", size:"3.1 GB",  updated:"3mo ago" },
+      { path:"shared-ref/hg38/genome.fa.fai",      kind:"file", size:"12 KB",   updated:"3mo ago" },
+    ],
+    tables: [
+      { name:"study_x_expression", volume:"assay-results", rows:"4.2M",  cols:18, updated:"2d ago",  yours:false },
+      { name:"ernie_qc_metrics",   volume:"assay-results", rows:"1,204", cols:9,  updated:"yesterday", yours:true },
+      { name:"cohort_manifest",    volume:"study-archive", rows:"3,880", cols:24, updated:"1w ago",  yours:false },
+    ],
+  },
+  clinical: {
+    name: "Clinical Operations",
+    tagline: "Clinical labs + patient cohorts · regulated",
+    volumes: [
+      { id:"clinical-labs",   label:"clinical-labs",   note:"lab results" },
+      { id:"patient-cohorts", label:"patient-cohorts", note:"enrolled studies" },
+      { id:"shared-ref",      label:"shared-ref",      note:"reference genomes" },
+    ],
+    packages: [
+      { name:"ernie/labs-review",        volume:"clinical-labs",   owner:"ernie@", updated:"1h ago",  yours:true,  files:7 },
+      { name:"labs-q1/chemistry",        volume:"clinical-labs",   owner:"team-e", updated:"4d ago",  yours:false, files:54 },
+      { name:"labs-q1/hematology",       volume:"clinical-labs",   owner:"team-e", updated:"4d ago",  yours:false, files:48 },
+      { name:"cohort-aurora/enrollment", volume:"patient-cohorts", owner:"team-c", updated:"2w ago",  yours:false, files:212 },
+      { name:"reference/hg38",           volume:"shared-ref",      owner:"core",   updated:"3mo ago", yours:false, files:24 },
+    ],
+    objects: [
+      { path:"clinical-labs/intake/2026-q2/", kind:"folder", size:"—",     updated:"1h ago" },
+      { path:"clinical-labs/intake/batch-77.csv", kind:"file", size:"18 MB", updated:"1h ago" },
+      { path:"patient-cohorts/aurora/manifest.json", kind:"file", size:"320 KB", updated:"2w ago" },
+    ],
+    tables: [
+      { name:"ernie_labs_flags", volume:"clinical-labs",   rows:"312",  cols:6,  updated:"1h ago", yours:true },
+      { name:"chemistry_panel",  volume:"clinical-labs",   rows:"890K", cols:31, updated:"4d ago", yours:false },
+      { name:"aurora_enrollment",volume:"patient-cohorts", rows:"4,012",cols:40, updated:"2w ago", yours:false },
+    ],
+  },
+};
+
+/* =========================================================================
+   STATE
+========================================================================= */
+const state = {
+  roleId: "oncology",
+  view: "home",            // home | domain | publish
+  mode: "packages",        // objects | packages | tables
+  ownerView: "smart",      // smart (yours-first) | all
+  activeVolume: null,      // volume id filter, or null
+  filter: "",              // table filter text
+  roleMenuOpen: false,
+};
+
+const role = () => ROLES[state.roleId];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+/* =========================================================================
+   RENDER — shell
+========================================================================= */
+function render(){
+  const r = role();
+  document.getElementById("app").innerHTML = `
+    ${topbar(r)}
+    <div class="body">
+      ${rail(r)}
+      <div class="main"><div class="main-inner" id="mainInner">${mainPanel(r)}</div></div>
+    </div>`;
+  wire();
+}
+
+function topbar(r){
+  return `
+  <div class="topbar">
+    <div class="brand" data-act="home">
+      <span class="tick"></span><b>Quilt</b><span>Workspaces</span>
+    </div>
+    <div class="role-switch">
+      <div class="role-btn" data-act="toggleRole">
+        <span class="lbl">Workspace</span>
+        <span class="nm">${esc(r.name)}</span>
+        <span class="car">▾</span>
+      </div>
+      ${state.roleMenuOpen ? roleMenu() : ""}
+    </div>
+    <div class="grow"></div>
+    <label class="search">
+      ${iconSearch()}
+      <input id="searchBox" type="text" placeholder="Search my workspace — packages, files, tables"
+             value="${esc(state.filter)}" autocomplete="off"/>
+    </label>
+    <div class="avatar" title="${esc(USER.name)} · ${esc(USER.handle)}">${esc(USER.initials)}</div>
+  </div>`;
+}
+
+function roleMenu(){
+  return `<div class="menu" id="roleMenu">
+    <div class="hd">Switch role — swaps the whole workspace</div>
+    ${Object.entries(ROLES).map(([id,r])=>`
+      <div class="mi ${id===state.roleId?'active':''}" data-act="setRole" data-id="${id}">
+        <div class="t">${esc(r.name)}</div>
+        <div class="s">${esc(r.tagline)} · ${r.volumes.length} Volumes</div>
+      </div>`).join("")}
+  </div>`;
+}
+
+function rail(r){
+  const volChildren = r.volumes.map(v=>`
+    <div class="nav child ${state.activeVolume===v.id?'sel':''}" data-act="vol" data-id="${v.id}">
+      <span class="dot">▸</span><span class="cap">${esc(v.label)}</span>
+    </div>`).join("");
+  return `
+  <div class="rail">
+    <div class="group-label">My workspace</div>
+    <div class="nav ${state.view==='home'&&!state.activeVolume?'active':''}" data-act="home">
+      <span class="ico">▾</span><span class="cap">Volumes</span><span class="badge">${r.volumes.length}</span>
+    </div>
+    ${volChildren}
+
+    <div class="group-label">Subscribed <span class="badge">0</span></div>
+    <div class="subscribed-empty">Data you're granted from the Domain appears here, beside your Volumes.</div>
+
+    <div class="divider"></div>
+    <div class="nav ${state.view==='domain'?'active':''}" data-act="domain">
+      <span class="ico">🛒</span><span class="cap">Domain</span><span class="badge">shop</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="cta" data-act="publish"><span class="plus">＋</span> New data asset</div>
+    <div class="cta" data-act="publish"><span class="plus">＋</span> New data product</div>
+  </div>`;
+}
+
+/* =========================================================================
+   RENDER — main panels
+========================================================================= */
+function mainPanel(r){
+  if(state.view==="domain")  return placeholderDomain();
+  if(state.view==="publish") return placeholderPublish();
+  return home(r);
+}
+
+function home(r){
+  const volNote = state.activeVolume
+    ? `Filtered to <b>${esc(state.activeVolume)}</b> · <span class="dim" style="cursor:pointer" data-act="home">clear</span>`
+    : `spanning <b>${r.volumes.length} Volumes</b> · personalized for <b>${esc(USER.name)}</b>`;
+  return `
+    <div class="ws-head">
+      <div class="ws-eyebrow">Your workspace</div>
+      <div class="ws-title">${esc(r.name)}</div>
+      <div class="ws-sub">${volNote}</div>
+    </div>
+
+    <div class="modebar">
+      ${modeTab("objects","Objects", r.objects.length, "raw S3 — browsable")}
+      ${modeTab("packages","Packages", r.packages.length, "")}
+      ${modeTab("tables","Tables", r.tables.length, "tabular")}
+    </div>
+
+    <div class="toolbar">
+      <span class="ttl">${modeTitle()} across ${state.activeVolume?esc(state.activeVolume):"all Volumes"}</span>
+      ${state.mode==="packages" ? ownerSeg() : ""}
+      <label class="filter">${iconSearch(13)}
+        <input id="filterBox" type="text" placeholder="Filter ${modeTitle().toLowerCase()}"
+               value="${esc(state.filter)}" autocomplete="off"/>
+      </label>
+    </div>
+
+    <div id="tableRegion">${tableForMode(r)}</div>
+  `;
+}
+
+function modeTab(id,label,count,note){
+  return `<div class="mode ${state.mode===id?'active':''}" data-act="mode" data-id="${id}">
+    ${label}<span class="ct">${count}</span>${note&&state.mode===id?`<span class="ct">· ${note}</span>`:""}
+  </div>`;
+}
+function modeTitle(){return {objects:"Objects",packages:"Packages",tables:"Tables"}[state.mode];}
+
+function ownerSeg(){
+  return `<div class="seg" title="Lead with your own work, or show everything flat">
+    <button class="${state.ownerView==='smart'?'on':''}" data-act="owner" data-id="smart">Yours first</button>
+    <button class="${state.ownerView==='all'?'on':''}"  data-act="owner" data-id="all">All activity</button>
+  </div>`;
+}
+
+/* ---- the three modes ---- */
+function tableForMode(r){
+  if(state.mode==="objects")  return objectsTable(r);
+  if(state.mode==="tables")   return tablesTable(r);
+  return packagesTable(r);
+}
+
+function matchVol(item){ return !state.activeVolume || item.volume===state.activeVolume; }
+function matchFilter(s){ return !state.filter || s.toLowerCase().includes(state.filter.toLowerCase()); }
+
+function packagesTable(r){
+  let rows = r.packages.filter(p=>matchVol(p) && matchFilter(p.name+" "+p.owner+" "+p.volume));
+  if(rows.length===0) return emptyTable();
+
+  const head = `<thead><tr>
+    <th style="width:42%">Name</th><th>Volume</th><th>Owner</th><th>Updated</th><th></th>
+  </tr></thead>`;
+
+  const rowHtml = p => `
+    <tr class="row">
+      <td><div class="nm-cell">
+        ${iconPkg()}
+        <span class="path">${esc(p.name)}</span>
+        ${p.yours?`<span class="you-tag">yours</span>`:""}
+      </div></td>
+      <td>${volPill(p.volume)}</td>
+      <td class="owner">${esc(p.owner)}</td>
+      <td class="updated">${esc(p.updated)}</td>
+      <td><div class="row-actions"><button class="ghost-btn" data-act="open" data-id="${esc(p.name)}">Open</button></div></td>
+    </tr>`;
+
+  if(state.ownerView==="smart"){
+    const yours = rows.filter(p=>p.yours), team = rows.filter(p=>!p.yours);
+    let body = "<tbody>";
+    if(yours.length){
+      body += `<tr class="grp-row"><td colspan="5"><span class="you">Your recent activity</span> · ${yours.length}</td></tr>`;
+      body += yours.map(rowHtml).join("");
+    }
+    if(team.length){
+      body += `<tr class="grp-row"><td colspan="5">Across ${esc(r.name)} · ${team.length}</td></tr>`;
+      body += team.map(rowHtml).join("");
+    }
+    body += "</tbody>";
+    return `<table class="tbl">${head}${body}</table>${pkgHint()}`;
+  }
+  // flat, newest-feel order as authored
+  return `<table class="tbl">${head}<tbody>${rows.map(rowHtml).join("")}</tbody></table>${pkgHint()}`;
+}
+
+function pkgHint(){
+  return `<div class="hint"><span class="k">Tip</span> Packages are the shoppable unit. Switch to
+    <b class="muted">Objects</b> for raw files (browsable, never shopped) or
+    <b class="muted">Tables</b> for registered tabular data.</div>`;
+}
+
+function objectsTable(r){
+  let rows = r.objects.filter(o=>matchFilter(o.path));
+  if(state.activeVolume) rows = rows.filter(o=>o.path.startsWith(state.activeVolume+"/"));
+  if(rows.length===0) return emptyTable();
+  const head = `<thead><tr><th style="width:60%">Path</th><th>Size</th><th>Updated</th></tr></thead>`;
+  const body = rows.map(o=>`
+    <tr class="row">
+      <td><div class="nm-cell">${o.kind==="folder"?iconFolder():iconFile()}
+        <span class="${o.kind==='folder'?'pk':'muted'}">${esc(o.path)}</span></div></td>
+      <td class="updated">${esc(o.size)}</td>
+      <td class="updated">${esc(o.updated)}</td>
+    </tr>`).join("");
+  return `<table class="tbl">${head}<tbody>${body}</tbody></table>
+    <div class="hint"><span class="k">Note</span> Raw objects are browsable here but are
+    <b class="muted">never units of shopping</b> — only packages, products & tables are publishable.</div>`;
+}
+
+function tablesTable(r){
+  let rows = r.tables.filter(t=>matchVol(t) && matchFilter(t.name+" "+t.volume));
+  if(rows.length===0) return emptyTable();
+  const head = `<thead><tr><th style="width:40%">Table</th><th>Volume</th><th>Rows</th><th>Cols</th><th>Updated</th></tr></thead>`;
+  const body = rows.map(t=>`
+    <tr class="row">
+      <td><div class="nm-cell">${iconTable()}<span class="path">${esc(t.name)}</span>
+        ${t.yours?`<span class="you-tag">yours</span>`:""}</div></td>
+      <td>${volPill(t.volume)}</td>
+      <td class="updated">${esc(t.rows)}</td>
+      <td class="updated">${esc(t.cols)}</td>
+      <td class="updated">${esc(t.updated)}</td>
+    </tr>`).join("");
+  return `<table class="tbl">${head}<tbody>${body}</tbody></table>
+    <div class="hint"><span class="k">Emerging</span> Tables become a first-class, shoppable unit
+    alongside Packages — wired up in a later pass.</div>`;
+}
+
+function emptyTable(){
+  return `<table class="tbl"><tbody><tr><td style="padding:34px;text-align:center;color:var(--txt-dim)">
+    Nothing matches “${esc(state.filter)}”.</td></tr></tbody></table>`;
+}
+
+function volPill(v){return `<span class="vol-pill"><span class="d"></span>${esc(v)}</span>`;}
+
+/* ---- pass-2 placeholders (honest, no faked depth) ---- */
+function placeholderDomain(){
+  return `
+  <div class="ws-head">
+    <div class="ws-eyebrow">The shop</div>
+    <div class="ws-title">Domain</div>
+    <div class="ws-sub">Browse published data products you don't own yet — request access, and granted data lands back in your rail under <b>Subscribed</b>.</div>
+  </div>
+  <div class="placeholder">
+    <div class="tag">Next layer</div>
+    <h2>Shopping overlays this exact surface</h2>
+    <p>The Domain reuses the workspace shell, table, and status vocabulary — there's no second
+       interface to learn. Built in pass&nbsp;2:</p>
+    <div class="steps">
+      <div class="step"><span class="n">1</span> Browse the Domain — assets & products with state <b class="muted">○ shoppable</b></div>
+      <div class="step"><span class="n">2</span> Inspect a locked item — metadata + file names only 🔒</div>
+      <div class="step"><span class="n">3</span> Request → <b class="muted">◌ requested</b> → publisher grants → <b style="color:var(--granted)">● granted</b></div>
+      <div class="step"><span class="n">4</span> Granted data just appears in this workspace & search</div>
+    </div>
+  </div>`;
+}
+function placeholderPublish(){
+  return `
+  <div class="ws-head">
+    <div class="ws-eyebrow">Publisher</div>
+    <div class="ws-title">Publish data</div>
+    <div class="ws-sub">Turn your Volumes into shoppable data assets & products.</div>
+  </div>
+  <div class="placeholder">
+    <div class="tag">Next layer</div>
+    <h2>Create → publish → make shoppable</h2>
+    <p>Three separable steps, then grant or decline requests inline. Built in pass&nbsp;2 —
+       this pass nails the substrate it stands on.</p>
+    <div class="steps">
+      <div class="step"><span class="n">1</span> Create a data <b class="muted">asset</b> (one Volume) or <b class="muted">product</b> (spans Volumes)</div>
+      <div class="step"><span class="n">2</span> Publish to the Domain catalog</div>
+      <div class="step"><span class="n">3</span> Make shoppable — expose metadata + names, keep contents locked</div>
+    </div>
+  </div>`;
+}
+
+/* =========================================================================
+   ICONS (inline svg / glyphs)
+========================================================================= */
+function iconSearch(s=15){return `<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none">
+  <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/>
+  <path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;}
+function iconPkg(){return `<svg class="ic" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <path d="M8 1.5l5.5 3v7L8 14.5 2.5 11.5v-7L8 1.5z" stroke="currentColor" stroke-width="1.3"/>
+  <path d="M2.5 4.5L8 7.5l5.5-3M8 7.5v7" stroke="currentColor" stroke-width="1.3"/></svg>`;}
+function iconFolder(){return `<svg class="ic" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <path d="M1.5 4.5a1 1 0 011-1h3l1.2 1.4h6.8a1 1 0 011 1v6.1a1 1 0 01-1 1h-12a1 1 0 01-1-1V4.5z"
+  stroke="currentColor" stroke-width="1.3"/></svg>`;}
+function iconFile(){return `<svg class="ic" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <path d="M4 1.5h5l3.5 3.5v9a1 1 0 01-1 1H4a1 1 0 01-1-1v-11a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3"/>
+  <path d="M9 1.5V5h3.5" stroke="currentColor" stroke-width="1.3"/></svg>`;}
+function iconTable(){return `<svg class="ic" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <rect x="2" y="3" width="12" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/>
+  <path d="M2 6.5h12M6.5 6.5v6.5" stroke="currentColor" stroke-width="1.3"/></svg>`;}
+
+/* =========================================================================
+   EVENTS
+========================================================================= */
+let toastTimer=null;
+function toast(html){
+  const t=document.getElementById("toast");
+  t.innerHTML=html;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2600);
+}
+
+function wire(){
+  // delegated clicks
+  document.getElementById("app").onclick = e=>{
+    const el = e.target.closest("[data-act]");
+    if(!el) { if(state.roleMenuOpen){state.roleMenuOpen=false;render();} return; }
+    const act = el.dataset.act, id = el.dataset.id;
+    switch(act){
+      case "home":   state.view="home"; state.activeVolume=null; state.roleMenuOpen=false; render(); break;
+      case "domain": state.view="domain"; state.roleMenuOpen=false; render(); break;
+      case "publish":state.view="publish"; state.roleMenuOpen=false; render(); break;
+      case "toggleRole": state.roleMenuOpen=!state.roleMenuOpen; render(); break;
+      case "setRole":
+        if(id!==state.roleId){ state.roleId=id; state.view="home"; state.activeVolume=null;
+          state.filter=""; state.mode="packages"; }
+        state.roleMenuOpen=false; render();
+        toast(`Switched workspace → <b>${esc(ROLES[state.roleId].name)}</b>`); break;
+      case "vol":    state.view="home"; state.mode = state.mode==="objects"?"objects":"packages";
+                     state.activeVolume = state.activeVolume===id?null:id; render(); break;
+      case "mode":   state.mode=id; refreshMain(); break;
+      case "owner":  state.ownerView=id; renderTable(); refreshOwnerSeg(); break;
+      case "open":   toast(`Opening package <b>${esc(id)}</b> — package detail is a later pass.`); break;
+    }
+  };
+  wireInputs();
+}
+
+// (re)attach handlers to the filter input inside the main panel
+function wireInputs(){
+  const fb = document.getElementById("filterBox");
+  if(fb) fb.oninput = e=>{ state.filter=e.target.value; renderTable(); };
+  const sb = document.getElementById("searchBox");
+  if(sb) sb.oninput = e=>{
+    state.filter=e.target.value;
+    if(state.view!=="home"){
+      state.view="home"; render();
+      const x=document.getElementById("searchBox");
+      if(x){ x.focus(); x.value=state.filter; x.setSelectionRange(x.value.length,x.value.length); }
+    } else renderTable();
+  };
+}
+
+function renderTable(){
+  const reg=document.getElementById("tableRegion");
+  if(reg) reg.innerHTML = tableForMode(role());
+}
+function refreshMain(){
+  const inner=document.getElementById("mainInner");
+  if(inner){ inner.innerHTML = mainPanel(role()); wireInputs(); }
+}
+function refreshOwnerSeg(){
+  document.querySelectorAll('.seg [data-act="owner"]').forEach(b=>{
+    b.classList.toggle("on", b.dataset.id===state.ownerView);
+  });
+}
+
+render();
+</script>
+</body>
+</html>

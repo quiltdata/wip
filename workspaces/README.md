@@ -25,6 +25,29 @@ If something turns out to be wrong, update the brief at its source.
 > don't need MCP. Use MCP (against the nightly stack) only when working remotely
 > without that local access.
 
+## Running it
+
+Open [`index.html`](./index.html) directly in a browser — double-click it, no build,
+no server, no dependencies. It's a single self-contained file (vanilla JS + inline
+CSS) so it works offline.
+
+## Status
+
+**Pass 1 — substrate (done).** The base Workspace shell + home view, built to nail the
+*feel* before layering on shopping:
+
+- One shell (top bar · left rail · main) that all later flows reuse.
+- **Workspace home** spanning all Volumes, with **yours-first personalization** — your
+  own recent/owned work leads; the rest of the role's data is one toggle away.
+- **Objects / Packages / Tables** modes; per-Volume and live filtering; global search.
+- **Role switcher** that swaps the whole workspace (role ≡ workspace).
+- An empty **Subscribed** rail section + **Domain** / **New asset·product** entries that
+  foreshadow where pass 2 plugs in — without faking depth.
+
+**Pass 2 — shopping overlay (next):** consumer browse→inspect→request→granted and the
+publisher create→publish→shoppable→grant flows, with the live `○→◌→●` state machine and
+granted data flowing back into the **Subscribed** rail. See the brief's flows 2–3.
+
 ## Assets
 
 - The "look" should be [flagship](./ui-flagship.png)
