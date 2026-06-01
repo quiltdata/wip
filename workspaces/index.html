@@ -1,0 +1,1567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Quilt Workspaces — prototype</title>
+<style>
+  /* ============================================================
+     Quilt Workspaces — substrate prototype
+     Look = Flagship Pioneering (dark, editorial, red accent)
+     Feel = Quilt catalog (clean data browser)
+     Zero dependencies: vanilla JS, system fonts, opens offline.
+  ============================================================ */
+  :root{
+    --bg:        #0e0e11;
+    --panel:     #16161a;
+    --panel-2:   #1c1c21;
+    --rail:      #121215;
+    --line:      #2a2a31;
+    --line-soft: #232329;
+    --txt:       #f4f3f1;
+    --txt-mut:   #9a9aa2;
+    --txt-dim:   #6b6b73;
+    --accent:    #e8502e;   /* Flagship red-orange */
+    --accent-dim:#7c2d1c;
+    --granted:   #3ecf8e;
+    --pending:   #e0a83e;
+    --inset:     #101014;   /* recessed surfaces (meta grids, inputs, code) */
+    --code:      #0c0c0f;
+    --thead:     #141418;
+    --hover:     #1b1b20;
+    --hover-2:   #26262d;
+    --topbar:    #141417;
+    --radius:    8px;
+    --rail-w:    248px;
+    --bar-h:     58px;
+    font-synthesis: none;
+  }
+  /* light theme — same Flagship accent, paper-bright Quilt surfaces */
+  :root[data-theme="light"]{
+    --bg:        #f4f2ef;
+    --panel:     #ffffff;
+    --panel-2:   #ffffff;
+    --rail:      #faf8f5;
+    --line:      #e2ded7;
+    --line-soft: #eeebe5;
+    --txt:       #1b1a18;
+    --txt-mut:   #5d5b56;
+    --txt-dim:   #8d8a83;
+    --accent:    #e8502e;
+    --accent-dim:#e8a48f;
+    --granted:   #1c9d68;
+    --pending:   #b9791c;
+    --inset:     #f4f1ec;
+    --code:      #f4f1ec;
+    --thead:     #f7f5f1;
+    --hover:     #f3f0eb;
+    --hover-2:   #ece8e2;
+    --topbar:    #ffffff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-size:14px;
+    line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{height:100vh;display:flex;flex-direction:column}
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    height:var(--bar-h);flex:0 0 auto;
+    display:flex;align-items:center;gap:18px;
+    padding:0 20px;
+    background:var(--topbar);
+    border-bottom:1px solid var(--line);
+    position:relative;z-index:40;
+  }
+  .brand{display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+  .brand .tick{width:14px;height:14px;border-radius:3px;background:var(--accent);
+    transform:rotate(45deg);flex:0 0 auto;box-shadow:0 0 0 3px rgba(232,80,46,.16)}
+  .brand b{font-weight:700;letter-spacing:-.01em}
+  .brand span{color:var(--txt-dim);font-weight:400}
+
+  .role-switch{position:relative}
+  .role-btn{
+    display:flex;align-items:center;gap:9px;cursor:pointer;
+    background:var(--panel-2);border:1px solid var(--line);
+    padding:7px 12px;border-radius:var(--radius);color:var(--txt);
+  }
+  .role-btn .lbl{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--txt-dim)}
+  .role-btn .nm{font-weight:600}
+  .role-btn .car{color:var(--txt-dim)}
+  .role-btn:hover{border-color:#3a3a44}
+  .menu{
+    position:absolute;top:46px;left:0;min-width:280px;
+    background:var(--panel-2);border:1px solid var(--line);
+    border-radius:10px;padding:6px;box-shadow:0 18px 50px rgba(0,0,0,.55);
+  }
+  .menu .mi{display:flex;flex-direction:column;gap:1px;padding:9px 11px;border-radius:7px;cursor:pointer}
+  .menu .mi:hover{background:var(--hover-2)}
+  .menu .mi.active{background:rgba(232,80,46,.12)}
+  .menu .mi .t{font-weight:600;display:flex;align-items:center;gap:8px}
+  .menu .mi .s{font-size:12px;color:var(--txt-mut)}
+  .menu .mi.active .t::after{content:"●";color:var(--accent);font-size:9px;margin-left:auto}
+  .menu .hd{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);padding:8px 11px 4px}
+
+  .grow{flex:1 1 auto}
+  .search{
+    display:flex;align-items:center;gap:8px;width:min(420px,38vw);
+    background:var(--panel);border:1px solid var(--line);
+    padding:8px 12px;border-radius:999px;color:var(--txt-mut);
+  }
+  .search:focus-within{border-color:var(--accent-dim);background:var(--inset)}
+  .search svg{flex:0 0 auto}
+  .search input{
+    flex:1;background:none;border:none;outline:none;color:var(--txt);
+    font-size:13px;font-family:inherit;
+  }
+  .search input::placeholder{color:var(--txt-dim)}
+
+  .theme-btn{width:34px;height:34px;border-radius:50%;flex:0 0 auto;background:var(--panel);
+    border:1px solid var(--line);color:var(--txt-mut);font-size:15px;cursor:pointer;line-height:1}
+  .theme-btn:hover{color:var(--txt);border-color:#3a3a44}
+  .avatar{
+    width:34px;height:34px;border-radius:50%;flex:0 0 auto;
+    display:grid;place-items:center;font-size:12px;font-weight:700;
+    background:radial-gradient(120% 120% at 30% 20%,#3a3a44,var(--hover));
+    border:1px solid var(--line);color:var(--txt);cursor:pointer;
+  }
+
+  /* ---------- body split ---------- */
+  .body{flex:1 1 auto;display:flex;min-height:0}
+
+  /* ---------- left rail ---------- */
+  .rail{
+    width:var(--rail-w);flex:0 0 var(--rail-w);
+    background:var(--rail);border-right:1px solid var(--line);
+    padding:18px 12px;overflow:auto;display:flex;flex-direction:column;gap:6px;
+  }
+  .rail .group-label{
+    font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--txt-dim);padding:6px 10px 4px;margin-top:6px;
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .nav{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;
+    cursor:pointer;color:var(--txt-mut);font-size:13px;user-select:none}
+  .nav:hover{background:var(--hover);color:var(--txt)}
+  .nav.active{background:rgba(232,80,46,.13);color:var(--txt)}
+  .nav.active .ico{filter:none}
+  .nav .ico{width:16px;text-align:center;flex:0 0 auto}
+  .nav .cap{flex:1}
+  .nav .badge{font-size:11px;color:var(--txt-dim)}
+  .nav.child{padding-left:34px;font-size:12.5px}
+  .nav.child .dot{color:var(--txt-dim);font-size:9px}
+  .nav.child.sel{color:var(--accent)}
+  .rail .divider{height:1px;background:var(--line-soft);margin:10px 6px}
+  .rail .cta{
+    display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;
+    cursor:pointer;color:var(--txt-mut);font-size:13px;border:1px dashed var(--line);
+  }
+  .rail .cta:hover{border-color:var(--accent-dim);color:var(--txt)}
+  .rail .cta .plus{color:var(--accent);font-weight:700}
+  .subscribed-empty{font-size:11.5px;color:var(--txt-dim);padding:2px 10px 4px;line-height:1.4}
+
+  /* ---------- main ---------- */
+  .main{flex:1 1 auto;overflow:auto;min-width:0}
+  .main-inner{padding:30px 38px 60px;max-width:1180px}
+
+  .ws-head{margin-bottom:22px}
+  .ws-eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);
+    font-weight:600;display:flex;align-items:center;gap:8px}
+  .ws-eyebrow::before{content:"";width:22px;height:2px;background:var(--accent);display:inline-block}
+  .ws-title{font-size:34px;font-weight:700;letter-spacing:-.02em;margin:8px 0 4px;line-height:1.05}
+  .ws-sub{color:var(--txt-mut);font-size:14px}
+  .ws-sub b{color:var(--txt);font-weight:600}
+
+  .modebar{display:flex;gap:4px;margin:24px 0 0;border-bottom:1px solid var(--line)}
+  .mode{
+    padding:10px 16px;cursor:pointer;color:var(--txt-mut);font-weight:600;font-size:13.5px;
+    border-bottom:2px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:8px;
+  }
+  .mode:hover{color:var(--txt)}
+  .mode.active{color:var(--txt);border-bottom-color:var(--accent)}
+  .mode .ct{font-size:11px;color:var(--txt-dim);font-weight:600}
+
+  .toolbar{display:flex;align-items:center;gap:14px;margin:20px 0 12px;flex-wrap:wrap}
+  .toolbar .ttl{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
+  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .seg button{
+    background:none;border:none;color:var(--txt-mut);font-family:inherit;font-size:12.5px;
+    padding:6px 12px;cursor:pointer;font-weight:600;
+  }
+  .seg button.on{background:rgba(232,80,46,.16);color:var(--txt)}
+  .seg button:not(.on):hover{color:var(--txt)}
+  .filter{
+    margin-left:auto;display:flex;align-items:center;gap:7px;
+    background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:6px 11px;color:var(--txt-mut);
+  }
+  .filter:focus-within{border-color:var(--accent-dim)}
+  .filter input{background:none;border:none;outline:none;color:var(--txt);font-size:13px;font-family:inherit;width:170px}
+  .filter input::placeholder{color:var(--txt-dim)}
+
+  /* ---------- table ---------- */
+  .tbl{width:100%;border-collapse:collapse;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  .tbl thead th{
+    text-align:left;font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--txt-dim);font-weight:600;padding:11px 16px;border-bottom:1px solid var(--line);
+    background:var(--thead);
+  }
+  .grp-row td{
+    padding:14px 16px 7px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--txt-dim);font-weight:600;background:transparent;border:none;
+  }
+  .grp-row .you{color:var(--accent)}
+  .tbl tbody tr.row{cursor:default}
+  .tbl tbody tr.row:hover{background:var(--hover)}
+  .tbl tbody td{padding:12px 16px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  .tbl tbody tr:last-child td{border-bottom:none}
+  .nm-cell{display:flex;align-items:center;gap:11px}
+  .nm-cell .ic{color:var(--txt-dim);flex:0 0 auto}
+  .nm-cell .pk{font-weight:600}
+  .nm-cell .path{color:var(--txt);font-weight:600}
+  .nm-cell .you-tag{font-size:10px;color:var(--accent);border:1px solid var(--accent-dim);
+    padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  .muted{color:var(--txt-mut)}
+  .dim{color:var(--txt-dim)}
+  .vol-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--txt-mut);
+    background:var(--inset);border:1px solid var(--line);padding:3px 9px;border-radius:999px}
+  .vol-pill .d{width:6px;height:6px;border-radius:50%;background:var(--txt-dim)}
+  .owner{font-size:12.5px;color:var(--txt-mut)}
+  .updated{font-size:12.5px;color:var(--txt-mut);white-space:nowrap}
+  .row-actions{opacity:0;transition:opacity .12s}
+  tr.row:hover .row-actions{opacity:1}
+  .ghost-btn{background:none;border:1px solid var(--line);color:var(--txt-mut);
+    border-radius:6px;padding:4px 10px;font-size:12px;font-family:inherit;cursor:pointer}
+  .ghost-btn:hover{color:var(--txt);border-color:#3a3a44}
+
+  .hint{margin-top:16px;color:var(--txt-dim);font-size:12.5px;display:flex;align-items:center;gap:8px}
+  .hint .k{color:var(--txt-mut)}
+
+  /* breadcrumb + tree */
+  .crumbs{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--txt-mut);font-weight:600}
+  .crumbs .c{cursor:pointer}
+  .crumbs .c:hover{color:var(--txt)}
+  .crumbs .sep{color:var(--txt-dim);font-weight:400}
+  .crumbs .cur{color:var(--txt);cursor:default}
+  .tbl-meta{font-size:12px;color:var(--txt-dim);margin:0 2px 8px;text-align:right}
+  .tbl th.cb,.tbl td.cb{width:38px;padding-left:16px;padding-right:0}
+  .tbl input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px;cursor:pointer;
+    appearance:none;border:1.5px solid var(--line);border-radius:3px;background:var(--panel)}
+  .tbl input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+  .tbl input[type=checkbox]:disabled{opacity:.4;cursor:default}
+  .nm-cell .dir{cursor:pointer}
+  .nm-cell .dir:hover{color:var(--accent)}
+
+  /* ---------- placeholder (domain / publisher next) ---------- */
+  .placeholder{
+    margin-top:26px;border:1px solid var(--line);border-radius:12px;background:var(--panel);
+    padding:40px;text-align:left;max-width:680px;
+  }
+  .placeholder .tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+  .placeholder h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin:10px 0 8px}
+  .placeholder p{color:var(--txt-mut);margin:0 0 14px;max-width:52ch}
+  .placeholder .steps{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+  .placeholder .step{display:flex;gap:10px;align-items:center;color:var(--txt-mut);font-size:13px}
+  .placeholder .step .n{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);
+    display:grid;place-items:center;font-size:11px;color:var(--txt-dim);flex:0 0 auto}
+
+  /* ---------- toast ---------- */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2);border:1px solid var(--line);color:var(--txt);
+    padding:11px 18px;border-radius:999px;font-size:13px;opacity:0;pointer-events:none;
+    transition:.22s;box-shadow:0 14px 40px rgba(0,0,0,.5);z-index:80}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast b{color:var(--accent)}
+
+  .corner{position:fixed;bottom:12px;right:16px;font-size:10.5px;letter-spacing:.06em;
+    color:var(--txt-dim);text-transform:uppercase;z-index:5}
+  .corner b{color:var(--txt-mut)}
+
+  /* ---------- flow 4: focus filter ---------- */
+  .focus-sel{background:var(--panel);border:1px solid var(--line);border-radius:7px;color:var(--txt-mut);
+    font-family:inherit;font-size:12.5px;font-weight:600;padding:6px 10px;cursor:pointer}
+  .focus-sel:hover{color:var(--txt);border-color:#3a3a44}
+  .focus-banner{margin:0 0 12px;background:var(--panel-2);border:1px solid var(--line);border-left:2px solid var(--accent);
+    border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--txt-mut)}
+  .focus-banner b{color:var(--txt)}
+  .focus-banner .link{color:var(--accent);cursor:pointer;margin-left:6px;font-weight:600}
+
+  /* ---------- sharing model: levels + teasers ---------- */
+  .levels{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px}
+  .level{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:18px 18px 16px;position:relative}
+  .level .lv-n{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.1em}
+  .level .lv-h{font-size:15px;font-weight:700;margin:6px 0 8px;letter-spacing:-.01em}
+  .level p{color:var(--txt-mut);font-size:13px;margin:0 0 14px;line-height:1.5}
+  .level .lv-tag{font-size:11px;color:var(--granted);font-weight:600}
+  .level .lv-tag .link{color:var(--accent);cursor:pointer}
+  .level .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+  .teasers{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:10px}
+  .teaser{border:1px solid var(--line);border-radius:12px;background:var(--panel-2);padding:16px 18px}
+  .tz-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .tz-ico{font-size:20px}
+  .tz-tag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+    border:1px solid;padding:2px 8px;border-radius:999px}
+  .tz-h{font-size:14.5px;font-weight:700;margin-bottom:6px}
+  .teaser p{color:var(--txt-mut);font-size:12.5px;margin:0;line-height:1.5}
+  .scope-note{margin-top:24px;color:var(--txt-dim);font-size:12.5px;border-top:1px solid var(--line-soft);
+    padding-top:14px;max-width:80ch}
+
+  /* ---------- shopping: badges, links, footer ---------- */
+  .badge-state{font-size:12.5px;font-weight:600;white-space:nowrap}
+  .nm-cell .lk{width:16px;text-align:center;flex:0 0 auto}
+  .nm-cell .link{cursor:pointer}
+  .nm-cell .link:hover{color:var(--accent)}
+  .sub-tag{font-size:10px;color:var(--granted);border:1px solid #2c5e48;padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  .tbl-tag{font-size:10px;color:var(--txt-mut);border:1px solid var(--line);padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  .seed-note{background:var(--inset);border:1px solid var(--line);border-left:2px solid var(--accent);
+    border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--txt-mut);margin-bottom:6px}
+  .seed-note b{color:var(--txt)}
+  .newtag{font-size:9.5px;color:var(--bg);background:var(--accent);padding:1px 6px;border-radius:999px;font-weight:700;margin-left:auto}
+  .nav.child.sub{padding-left:30px}
+  .shop-foot{display:flex;align-items:center;gap:16px;margin-top:14px}
+  .shop-foot .hint{margin-top:0;flex:1}
+  .cta-btn{background:var(--accent);border:none;color:#fff;font-family:inherit;font-weight:600;
+    font-size:13px;padding:9px 18px;border-radius:8px;cursor:pointer;white-space:nowrap}
+  .cta-btn:hover{background:#f2643f}
+  .cta-btn.off{background:#2a2a31;color:var(--txt-dim);cursor:default}
+  .ghost-btn.accent{border-color:var(--accent-dim);color:var(--accent)}
+  .ghost-btn.accent:hover{background:rgba(232,80,46,.12)}
+  .subline{font-size:12px;color:var(--txt-mut);margin-top:3px;display:flex;align-items:center;gap:6px}
+  .subline .ghost-btn{padding:2px 9px}
+  .subline.grayed{color:var(--txt-dim)}
+  tr.is-grayed .path{color:var(--txt-mut)}
+  .empty-note{padding:36px;text-align:center;color:var(--txt-dim);border:1px solid var(--line);
+    border-radius:10px;background:var(--panel)}
+  tr.subreq td{padding-top:2px;padding-bottom:10px;border-bottom:1px solid var(--line-soft)}
+  .reqline{display:flex;align-items:center;gap:12px;padding-left:40px;font-size:13px}
+  .reqact{margin-left:auto;display:flex;gap:6px}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(6,6,8,.66);backdrop-filter:blur(3px);
+    display:grid;place-items:center;z-index:60;padding:30px}
+  .dialog{width:min(680px,94vw);max-height:88vh;overflow:auto;background:var(--panel);
+    border:1px solid var(--line);border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+  .dlg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+    padding:18px 22px;border-bottom:1px solid var(--line);font-size:16px}
+  .dlg-head b{font-size:17px;letter-spacing:-.01em}
+  .dlg-sub{font-size:12.5px;color:var(--txt-mut);font-weight:400;margin-top:4px;display:flex;gap:8px;align-items:center}
+  .x{background:none;border:none;color:var(--txt-dim);font-size:16px;cursor:pointer;padding:2px 6px;border-radius:6px}
+  .x:hover{color:var(--txt);background:var(--hover-2)}
+  .dlg-body{padding:18px 22px;display:flex;flex-direction:column;gap:6px}
+  .dlg-foot{padding:16px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+  .panel-label{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-dim);
+    font-weight:600;margin:12px 0 4px}
+  .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;background:var(--inset);
+    border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+  .mr{display:flex;gap:10px;font-size:13px}
+  .mr .mk{color:var(--txt-dim);min-width:90px}
+  .mr .mv{color:var(--txt)}
+  .fn-box{background:var(--inset);border:1px solid var(--line);border-radius:8px;padding:14px 16px;font-size:13px}
+  .fn-dir{color:var(--txt);margin-bottom:6px}
+  .fn-names{color:var(--txt-mut);font-family:ui-monospace,Menlo,monospace;font-size:12px;margin-left:6px}
+  .locked-panel{margin-top:12px;background:#1a1411;border:1px solid #3a2a20;color:#e6b8a6;
+    padding:12px 14px;border-radius:8px;font-size:12.5px}
+  .locked-panel.unlocked{background:#10201a;border-color:#234;color:var(--granted)}
+  .req-list{display:flex;flex-direction:column;gap:8px}
+  .req-item{display:flex;align-items:center;gap:10px;background:var(--inset);border:1px solid var(--line);
+    border-radius:8px;padding:10px 14px;font-size:13px}
+  .req-item .goesto{margin-left:auto;color:var(--txt-dim);font-size:12px}
+  .msg{width:100%;min-height:64px;background:var(--inset);border:1px solid var(--line);border-radius:8px;
+    color:var(--txt);font-family:inherit;font-size:13px;padding:10px 12px;resize:vertical}
+  .field{margin:8px 0}
+  .field label{display:block;font-size:12px;color:var(--txt-mut);margin-bottom:5px}
+  .inp{width:100%;background:var(--inset);border:1px solid var(--line);border-radius:8px;color:var(--txt);
+    font-family:inherit;font-size:13px;padding:9px 12px}
+  select.inp{cursor:pointer}
+  .radio{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--txt);padding:5px 0;cursor:pointer}
+  .radio input{accent-color:var(--accent)}
+  .match-note{font-size:12.5px;color:var(--txt);margin:10px 0 6px}
+  .match-box{background:var(--inset);border:1px solid var(--line);border-radius:8px;padding:12px 14px;
+    display:flex;flex-wrap:wrap;gap:8px 14px;font-size:12.5px}
+  .match-box.mono{font-family:ui-monospace,Menlo,monospace;display:block;line-height:1.7;color:var(--txt-mut)}
+  .chip{display:inline-flex;align-items:center;gap:7px;color:var(--txt-mut);cursor:pointer}
+  .chip input{accent-color:var(--accent)}
+  .chips-inline{display:flex;gap:16px;flex-wrap:wrap}
+  .warn{color:var(--pending);font-size:11px;font-weight:600;letter-spacing:0;text-transform:none}
+  .ok{color:var(--granted);font-size:12px;font-weight:600;margin-left:6px}
+
+  /* lifecycle bar */
+  .lifecycle{position:relative;display:flex;align-items:center;gap:0;margin:6px 0 26px;padding:0 4px}
+  .lc{font-size:14px;color:var(--txt-dim)}
+  .lc.done{color:var(--accent)}
+  .lc.cur{color:var(--accent);text-shadow:0 0 10px rgba(232,80,46,.6)}
+  .lc-line{height:2px;width:60px;background:var(--line)}
+  .lc-line.on{background:var(--accent)}
+  .lc-line.dash{background:repeating-linear-gradient(90deg,var(--line),var(--line) 4px,transparent 4px,transparent 8px)}
+  .lc-labels{position:absolute;top:18px;left:0;right:0;display:flex;justify-content:space-between;
+    font-size:11px;color:var(--txt-dim)}
+  .step-card{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:12px;background:var(--inset)}
+  .step-card.done{border-color:#234;background:#10201a22}
+  .step-card.disabled{opacity:.5}
+  .step-h{font-weight:600;font-size:13.5px;margin-bottom:6px;display:flex;align-items:center}
+  .step-card .cta-btn{margin-top:12px}
+
+  /* subscribed detail (screen 24) */
+  .granted-banner{background:#10201a;border:1px solid #234;color:var(--granted);
+    padding:12px 16px;border-radius:10px;font-size:13.5px;margin-bottom:18px}
+  .sub-detail{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:6px 0;overflow:hidden}
+  .sub-dir{padding:12px 18px 6px;font-weight:600;color:var(--txt)}
+  .sub-file{display:flex;align-items:center;justify-content:space-between;padding:8px 18px}
+  .sub-file:hover{background:var(--hover)}
+  .sub-file .filebtns{display:flex;gap:6px}
+  .preview{margin:0 18px 12px;background:var(--code);border:1px solid var(--line);border-radius:8px;
+    padding:12px 14px;font-size:12.5px;color:var(--txt-mut);font-family:ui-monospace,Menlo,monospace;white-space:pre}
+
+  ::-webkit-scrollbar{width:11px;height:11px}
+  ::-webkit-scrollbar-thumb{background:#2a2a31;border-radius:8px;border:3px solid var(--bg)}
+  ::-webkit-scrollbar-track{background:transparent}
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="toast"></div>
+  <div class="corner">prototype · look <b>Flagship</b> · feel <b>Quilt</b></div>
+
+<script>
+/* =========================================================================
+   MOCK DATA — two roles, each its own workspace (role-switcher swaps all).
+   Personalization: packages owned by the current user (yours=true) lead.
+========================================================================= */
+const USER = { name:"Ernie", initials:"EB", handle:"ernie@acme.bio" };
+
+const ROLES = {
+  oncology: {
+    name: "Oncology Research",
+    tagline: "Translational oncology · assay + archive + reference",
+    volumes: [
+      { id:"assay-results", label:"assay-results", note:"experimental output" },
+      { id:"study-archive", label:"study-archive", note:"frozen cohorts" },
+      { id:"shared-ref",    label:"shared-ref",    note:"reference genomes" },
+    ],
+    packages: [
+      // yours — owned under the user's personal namespace, lead the view
+      { name:"ernie/study-x-draft",      volume:"assay-results", owner:"ernie@",  updated:"3h ago",   yours:true,  files:42 },
+      { name:"ernie/qc-scratch",         volume:"assay-results", owner:"ernie@",  updated:"yesterday", yours:true,  files:11 },
+      // team / role-wide
+      { name:"study-x/run-001",          volume:"assay-results", owner:"team-a",  updated:"2d ago",   yours:false, files:38 },
+      { name:"study-x/run-002",          volume:"assay-results", owner:"team-a",  updated:"2d ago",   yours:false, files:38 },
+      { name:"study-x/qc-summary",       volume:"assay-results", owner:"team-a",  updated:"2d ago",   yours:false, files:6  },
+      { name:"cohort-2025/baseline",     volume:"study-archive", owner:"team-a",  updated:"1w ago",   yours:false, files:120 },
+      { name:"cohort-2025/followup",     volume:"study-archive", owner:"maya@",   updated:"1w ago",   yours:false, files:96 },
+      { name:"reference/hg38",           volume:"shared-ref",    owner:"core",    updated:"3mo ago",  yours:false, files:24 },
+      { name:"reference/annotations",    volume:"shared-ref",    owner:"core",    updated:"3mo ago",  yours:false, files:18 },
+    ],
+    fs: {
+      "assay-results": {
+        "incoming": {
+          "2026-05-30": {
+            "run-194.fastq.gz": { __file:1, size:"2.4 GB", mod:"3h ago" },
+            "run-195.fastq.gz": { __file:1, size:"2.1 GB", mod:"5h ago" },
+          },
+          "manifest.csv": { __file:1, size:"48 KB", mod:"3h ago" },
+        },
+        "processed": {
+          "study-x": {
+            "run-001": {
+              "matrix.csv": { __file:1, size:"310 MB", mod:"2d ago" },
+              "metadata.json": { __file:1, size:"4 KB", mod:"2d ago" },
+              "qc.html": { __file:1, size:"1.2 MB", mod:"2d ago" },
+            },
+            "run-002": { "matrix.csv": { __file:1, size:"305 MB", mod:"2d ago" } },
+          },
+        },
+        ".quilt": { "packages": {}, "named_packages": {} },
+        "README.md": { __file:1, size:"2 KB", mod:"2w ago" },
+      },
+      "study-archive": {
+        "raw": { "cohort-2025": {
+          "baseline.tar.gz": { __file:1, size:"18 GB", mod:"1w ago" },
+          "followup.tar.gz": { __file:1, size:"14 GB", mod:"1w ago" },
+        }},
+        "README.md": { __file:1, size:"4 KB", mod:"1mo ago" },
+      },
+      "shared-ref": {
+        "hg38": {
+          "genome.fa": { __file:1, size:"3.1 GB", mod:"3mo ago" },
+          "genome.fa.fai": { __file:1, size:"12 KB", mod:"3mo ago" },
+        },
+        "annotations": { "genes.gtf": { __file:1, size:"1.2 GB", mod:"3mo ago" } },
+      },
+    },
+    tables: [
+      { name:"study_x_expression", volume:"assay-results", rows:"4.2M",  cols:18, updated:"2d ago",  yours:false },
+      { name:"ernie_qc_metrics",   volume:"assay-results", rows:"1,204", cols:9,  updated:"yesterday", yours:true },
+      { name:"cohort_manifest",    volume:"study-archive", rows:"3,880", cols:24, updated:"1w ago",  yours:false },
+    ],
+  },
+  clinical: {
+    name: "Clinical Operations",
+    tagline: "Clinical labs + patient cohorts · regulated",
+    volumes: [
+      { id:"clinical-labs",   label:"clinical-labs",   note:"lab results" },
+      { id:"patient-cohorts", label:"patient-cohorts", note:"enrolled studies" },
+      { id:"shared-ref",      label:"shared-ref",      note:"reference genomes" },
+    ],
+    packages: [
+      { name:"ernie/labs-review",        volume:"clinical-labs",   owner:"ernie@", updated:"1h ago",  yours:true,  files:7 },
+      { name:"labs-q1/chemistry",        volume:"clinical-labs",   owner:"team-e", updated:"4d ago",  yours:false, files:54 },
+      { name:"labs-q1/hematology",       volume:"clinical-labs",   owner:"team-e", updated:"4d ago",  yours:false, files:48 },
+      { name:"cohort-aurora/enrollment", volume:"patient-cohorts", owner:"team-c", updated:"2w ago",  yours:false, files:212 },
+      { name:"reference/hg38",           volume:"shared-ref",      owner:"core",   updated:"3mo ago", yours:false, files:24 },
+    ],
+    fs: {
+      "clinical-labs": {
+        "intake": { "2026-q2": {
+          "batch-77.csv": { __file:1, size:"18 MB", mod:"1h ago" },
+          "batch-78.csv": { __file:1, size:"21 MB", mod:"30m ago" },
+        }},
+        "validated": { "chemistry": { "panel.parquet": { __file:1, size:"410 MB", mod:"4d ago" } } },
+        "README.md": { __file:1, size:"3 KB", mod:"3w ago" },
+      },
+      "patient-cohorts": {
+        "aurora": {
+          "manifest.json": { __file:1, size:"320 KB", mod:"2w ago" },
+          "enrollment.csv": { __file:1, size:"2.1 MB", mod:"2w ago" },
+        },
+      },
+      "shared-ref": {
+        "hg38": { "genome.fa": { __file:1, size:"3.1 GB", mod:"3mo ago" } },
+      },
+    },
+    tables: [
+      { name:"ernie_labs_flags", volume:"clinical-labs",   rows:"312",  cols:6,  updated:"1h ago", yours:true },
+      { name:"chemistry_panel",  volume:"clinical-labs",   rows:"890K", cols:31, updated:"4d ago", yours:false },
+      { name:"aurora_enrollment",volume:"patient-cohorts", rows:"4,012",cols:40, updated:"2w ago", yours:false },
+    ],
+  },
+};
+
+/* =========================================================================
+   STATE
+========================================================================= */
+/* -------------------------------------------------------------------------
+   DOMAIN — the org exchange (global, shared by both personas).
+   Item.state is the live position in the subscription state machine:
+     · published → ○ shoppable → ◌ requested → ● granted   (✕ declined)
+   `mine:true` items are things the current user publishes (Published tab);
+   they carry incoming `requests` the user grants/declines.
+------------------------------------------------------------------------- */
+let DOMAIN = [
+  { id:"studyx-full", name:"Study X — full release", kind:"product", owner:"team-a",
+    volumes:["assay-results","study-archive"], packages:38, membership:"dynamic (query)",
+    state:"shoppable", mine:false,
+    meta:{ study_id:"X", assay:"RNA-seq", released:"2026-05-20",
+           description:"Full Study X release — all experiments." },
+    files:[
+      { dir:"study-x/run-001/", names:["matrix.csv","metadata.json","qc.html"] },
+      { dir:"study-x/run-002/", names:["matrix.csv","metadata.json","qc.html"] },
+      { dir:"… 36 more packages", names:[] },
+    ],
+    pkgs:["study-x/run-001","study-x/run-002","study-x/run-003"] },
+
+  { id:"proteomics-2025", name:"Proteomics 2025", kind:"product", owner:"team-d",
+    volumes:["proteomics"], packages:14, membership:"static",
+    state:"requested", mine:false, requestedAt:"2h ago",
+    meta:{ assay:"LC-MS/MS", released:"2026-04-02", description:"Proteomics panel, 2025 cohort." },
+    files:[{ dir:"proteomics/batch-01/", names:["intensities.csv","design.json"] }], pkgs:["proteomics/batch-01"] },
+
+  { id:"ref-hg38", name:"Reference hg38", kind:"asset", owner:"core",
+    volumes:["shared-ref"], packages:24, membership:"whole Volume",
+    state:"granted", mine:false, requestedAt:"3w ago",
+    meta:{ build:"GRCh38", released:"2025-11-01", description:"Canonical hg38 reference + indices." },
+    files:[{ dir:"reference/hg38/", names:["genome.fa","genome.fa.fai","annotations.gtf"] }],
+    pkgs:["reference/hg38","reference/annotations"] },
+
+  { id:"imaging-b", name:"Imaging cohort B", kind:"asset", owner:"team-b",
+    volumes:["imaging"], packages:52, membership:"subset (prefix)",
+    state:"shoppable", mine:false,
+    meta:{ modality:"H&E WSI", released:"2026-03-12", description:"Whole-slide imaging, cohort B." },
+    files:[{ dir:"imaging/cohort-b/", names:["slide-0001.svs","slide-0002.svs","manifest.csv"] }],
+    pkgs:["imaging/cohort-b"] },
+
+  { id:"clinical-q1", name:"Clinical labs Q1", kind:"asset", owner:"team-e",
+    volumes:["clinical-labs"], packages:31, membership:"subset (regex)",
+    state:"declined", mine:false, requestedAt:"1d ago",
+    meta:{ panel:"chem + heme", released:"2026-04-30", description:"Q1 clinical lab results." },
+    files:[{ dir:"labs-q1/", names:["chemistry.parquet","hematology.parquet"] }], pkgs:["labs-q1/chemistry"] },
+
+  // --- tables published as single-Volume assets (flow 7: tables are first-class content) ---
+  { id:"tbl-expr", name:"Expression matrix — Study X", kind:"asset", owner:"team-a", tableBacked:true,
+    volumes:["assay-results"], packages:1, rows:"4.2M", cols:18, membership:"subset · 1 table",
+    state:"shoppable", mine:false,
+    meta:{ assay:"RNA-seq", rows:"4,200,000", columns:"18", released:"2026-05-20",
+           description:"Gene × sample expression matrix for Study X (single-Volume asset wrapping a table)." },
+    files:[{ dir:"columns:", names:["gene_id","sample_id","tpm","counts","…14 more"] }],
+    pkgs:["study_x_expression"] },
+
+  { id:"tbl-prot", name:"Proteomics intensities", kind:"asset", owner:"team-d", tableBacked:true,
+    volumes:["proteomics"], packages:1, rows:"880K", cols:24, membership:"subset · 1 table",
+    state:"shoppable", mine:false,
+    meta:{ assay:"LC-MS/MS", rows:"880,000", columns:"24", description:"Protein intensities, 2025 cohort (asset wrapping a table)." },
+    files:[{ dir:"columns:", names:["protein_id","sample_id","intensity","…21 more"] }],
+    pkgs:["proteomics_intensities"] },
+
+  // --- mine: things the user has published (Published tab, screen 13) ---
+  { id:"mine-qc", name:"Ernie — QC metrics", kind:"asset", owner:"ernie@",
+    volumes:["assay-results"], packages:12, membership:"subset (prefix study-x/)",
+    state:"shoppable", mine:true,
+    meta:{ assay:"RNA-seq QC", description:"Per-run QC metrics for Study X." },
+    files:[{ dir:"study-x/qc/", names:["qc-summary.csv"] }], pkgs:["study-x/qc-summary"],
+    requests:[ { who:"alice@team-b", state:"pending", when:"1h ago" },
+               { who:"raj@team-c",   state:"pending", when:"3h ago" } ] },
+
+  { id:"mine-baseline", name:"Oncology baseline", kind:"product", owner:"ernie@",
+    volumes:["assay-results","study-archive"], packages:20, membership:"dynamic (query)",
+    state:"published", mine:true,
+    meta:{ description:"Baseline release spanning assay + archive." },
+    files:[{ dir:"cohort-2025/baseline/", names:["matrix.csv","manifest.csv"] }], pkgs:["cohort-2025/baseline"],
+    requests:[] },
+];
+const domById = id => DOMAIN.find(d=>d.id===id);
+
+const state = {
+  roleId: "oncology",
+  theme: "light",          // dark | light
+  view: "home",            // home | domain | subscribed
+  mode: "packages",        // objects | packages | tables
+  ownerView: "smart",      // smart (yours-first) | all
+  focus: "all",            // all | mine | hide:<owner>  — view filter, NOT access control
+  activeVolume: null,      // volume id filter, or null
+  objectPath: [],          // current dir within activeVolume (Objects tree)
+  filter: "",              // table filter text
+  roleMenuOpen: false,
+  domainTab: "browse",     // browse | requests | published
+  cart: [],                // domain item ids selected to request
+  modal: null,             // {type, id?} overlay
+  openItem: null,          // subscribed item id open in detail (screen 24)
+};
+
+const role = () => ROLES[state.roleId];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c]));
+
+/* =========================================================================
+   RENDER — shell
+========================================================================= */
+function render(){
+  const r = role();
+  document.documentElement.dataset.theme = state.theme;
+  document.getElementById("app").innerHTML = `
+    ${topbar(r)}
+    <div class="body">
+      ${rail(r)}
+      <div class="main"><div class="main-inner" id="mainInner">${mainPanel(r)}</div></div>
+    </div>
+    ${modalLayer()}`;
+  wire();
+}
+
+function topbar(r){
+  return `
+  <div class="topbar">
+    <div class="brand" data-act="home">
+      <span class="tick"></span><b>Quilt</b><span>Workspaces</span>
+    </div>
+    <div class="role-switch">
+      <div class="role-btn" data-act="toggleRole">
+        <span class="lbl">Workspace</span>
+        <span class="nm">${esc(r.name)}</span>
+        <span class="car">▾</span>
+      </div>
+      ${state.roleMenuOpen ? roleMenu() : ""}
+    </div>
+    <div class="grow"></div>
+    <label class="search">
+      ${iconSearch()}
+      <input id="searchBox" type="text" placeholder="Search my workspace — packages, files, tables"
+             value="${esc(state.filter)}" autocomplete="off"/>
+    </label>
+    <button class="theme-btn" data-act="toggleTheme" title="Toggle dark / light">
+      ${state.theme==="dark" ? "☀" : "☾"}</button>
+    <div class="avatar" title="${esc(USER.name)} · ${esc(USER.handle)}">${esc(USER.initials)}</div>
+  </div>`;
+}
+
+function roleMenu(){
+  return `<div class="menu" id="roleMenu">
+    <div class="hd">Switch role — swaps the whole workspace</div>
+    ${Object.entries(ROLES).map(([id,r])=>`
+      <div class="mi ${id===state.roleId?'active':''}" data-act="setRole" data-id="${id}">
+        <div class="t">${esc(r.name)}</div>
+        <div class="s">${esc(r.tagline)} · ${r.volumes.length} Volumes</div>
+      </div>`).join("")}
+  </div>`;
+}
+
+function rail(r){
+  const volChildren = r.volumes.map(v=>`
+    <div class="nav child ${state.activeVolume===v.id?'sel':''}" data-act="vol" data-id="${v.id}">
+      <span class="dot">▸</span><span class="cap">${esc(v.label)}</span>
+    </div>`).join("");
+  return `
+  <div class="rail">
+    <div class="group-label">My workspace</div>
+    <div class="nav ${state.view==='home'&&!state.activeVolume?'active':''}" data-act="home">
+      <span class="ico">▾</span><span class="cap">Volumes</span><span class="badge">${r.volumes.length}</span>
+    </div>
+    ${volChildren}
+
+    ${subscribedRail()}
+
+    <div class="divider"></div>
+    <div class="nav ${state.view==='domain'?'active':''}" data-act="domain">
+      <span class="ico">🛒</span><span class="cap">Domain</span><span class="badge">shop</span>
+    </div>
+    <div class="nav ${state.view==='vision'?'active':''}" data-act="vision">
+      <span class="ico">🔗</span><span class="cap">Sharing model</span>
+    </div>
+
+    <div class="divider"></div>
+    <div class="cta" data-act="createAsset"><span class="plus">＋</span> New data asset</div>
+    <div class="cta" data-act="createProduct"><span class="plus">＋</span> New data product</div>
+  </div>`;
+}
+
+function subscribedRail(){
+  const subs = DOMAIN.filter(d=>!d.mine && d.state==="granted");
+  let html = `<div class="group-label">Subscribed <span class="badge">${subs.length}</span></div>`;
+  if(!subs.length){
+    return html + `<div class="subscribed-empty">Data you're granted from the Domain appears here, beside your Volumes.</div>`;
+  }
+  html += subs.map(d=>`
+    <div class="nav child sub ${state.view==='subscribed'&&state.openItem===d.id?'sel':''}" data-act="openSub" data-id="${d.id}">
+      <span class="dot" style="color:var(--granted)">●</span>
+      <span class="cap">${esc(shortName(d))}</span>
+      ${d._new?`<span class="newtag">new</span>`:""}
+    </div>`).join("");
+  return html;
+}
+function shortName(d){ return d.name.replace(/ — .*/,"").replace("Reference ","").trim(); }
+
+/* =========================================================================
+   RENDER — main panels
+========================================================================= */
+function mainPanel(r){
+  if(state.view==="domain")     return domainView(r);
+  if(state.view==="subscribed") return subscribedView(r);
+  if(state.view==="vision")     return visionView(r);
+  return home(r);
+}
+
+function home(r){
+  const volNote = state.activeVolume
+    ? `Filtered to <b>${esc(state.activeVolume)}</b> · <span class="dim" style="cursor:pointer" data-act="home">clear</span>`
+    : `spanning <b>${r.volumes.length} Volumes</b> · personalized for <b>${esc(USER.name)}</b>`;
+  return `
+    <div class="ws-head">
+      <div class="ws-eyebrow">Your workspace</div>
+      <div class="ws-title">${esc(r.name)}</div>
+      <div class="ws-sub">${volNote}</div>
+    </div>
+
+    <div class="modebar">
+      ${modeTab("objects","Objects", countFiles(r.fs), "raw S3 — browsable")}
+      ${modeTab("packages","Packages", r.packages.length, "")}
+      ${modeTab("tables","Tables", r.tables.length, "tabular")}
+    </div>
+
+    <div class="toolbar">
+      ${state.mode==="objects"
+        ? crumbs()
+        : `<span class="ttl">${modeTitle()} across ${state.activeVolume?esc(state.activeVolume):"all Volumes"}</span>`}
+      ${state.mode==="packages" ? ownerSeg() : ""}
+      ${state.mode==="packages" ? focusSel(r) : ""}
+      <label class="filter">${iconSearch(13)}
+        <input id="filterBox" type="text" placeholder="${state.mode==="objects"?"Filter this directory by prefix":"Filter "+modeTitle().toLowerCase()}"
+               value="${esc(state.filter)}" autocomplete="off"/>
+      </label>
+    </div>
+    ${state.mode==="packages" && state.focus!=="all" ? focusBanner() : ""}
+
+    <div id="tableRegion">${tableForMode(r)}</div>
+  `;
+}
+
+// Flow 4: a *view* filter (focus / hide clutter) — explicitly NOT a permission.
+function focusSel(r){
+  const others = [...new Set(r.packages.filter(p=>!p.yours && p.owner!=="core").map(p=>p.owner))];
+  return `<select class="focus-sel" id="focusSel" title="Filter your view — does not change anyone's access">
+    <option value="all" ${state.focus==="all"?"selected":""}>Focus: everyone</option>
+    <option value="mine" ${state.focus==="mine"?"selected":""}>Focus: just mine (ernie/)</option>
+    ${others.map(o=>`<option value="hide:${esc(o)}" ${state.focus==="hide:"+o?"selected":""}>Hide ${esc(o)}'s work</option>`).join("")}
+  </select>`;
+}
+function focusBanner(){
+  const what = state.focus==="mine" ? "Showing only your own packages."
+    : `Hiding <b>${esc(state.focus.slice(5))}</b>'s packages.`;
+  return `<div class="focus-banner">
+    👁 <b>View filter</b> — ${what} This is a personal UI filter; everyone in
+    <b>${esc(role().name)}</b> still has the same access. Filtering ≠ permissions.
+    <span class="link" data-act="focusClear">Clear</span></div>`;
+}
+
+function modeTab(id,label,count,note){
+  return `<div class="mode ${state.mode===id?'active':''}" data-act="mode" data-id="${id}">
+    ${label}<span class="ct">${count}</span>${note&&state.mode===id?`<span class="ct">· ${note}</span>`:""}
+  </div>`;
+}
+function modeTitle(){return {objects:"Objects",packages:"Packages",tables:"Tables"}[state.mode];}
+
+function ownerSeg(){
+  return `<div class="seg" title="Lead with your own work, or show everything flat">
+    <button class="${state.ownerView==='smart'?'on':''}" data-act="owner" data-id="smart">Yours first</button>
+    <button class="${state.ownerView==='all'?'on':''}"  data-act="owner" data-id="all">All activity</button>
+  </div>`;
+}
+
+/* ---- the three modes ---- */
+function tableForMode(r){
+  if(state.mode==="objects")  return objectsTree(r);
+  if(state.mode==="tables")   return tablesTable(r);
+  return packagesTable(r);
+}
+
+function matchVol(item){ return !state.activeVolume || item.volume===state.activeVolume; }
+function matchFilter(s){ return !state.filter || s.toLowerCase().includes(state.filter.toLowerCase()); }
+function matchFocus(p){
+  if(state.focus==="all") return true;
+  if(state.focus==="mine") return p.yours;
+  if(state.focus.startsWith("hide:")) return p.owner!==state.focus.slice(5);
+  return true;
+}
+
+// granted Domain items contribute their packages back into the workspace
+function subscribedPkgs(){
+  const out=[];
+  DOMAIN.filter(d=>!d.mine && d.state==="granted" && !d.tableBacked).forEach(d=>{
+    (d.pkgs||[]).forEach(name=>out.push({
+      name, volume:"subscribed", owner:d.owner, updated:"just granted", yours:false, sub:true, subId:d.id }));
+  });
+  return out;
+}
+
+function packagesTable(r){
+  let rows = r.packages.filter(p=>matchVol(p) && matchFocus(p) && matchFilter(p.name+" "+p.owner+" "+p.volume));
+  let subs = (!state.activeVolume && state.focus!=="mine" ? subscribedPkgs() : [])
+    .filter(p=>matchFilter(p.name+" "+p.owner));
+  if(rows.length===0 && subs.length===0) return emptyTable();
+
+  const head = `<thead><tr>
+    <th style="width:42%">Name</th><th>Volume</th><th>Owner</th><th>Updated</th><th></th>
+  </tr></thead>`;
+
+  const rowHtml = p => `
+    <tr class="row">
+      <td><div class="nm-cell">
+        ${iconPkg()}
+        <span class="path ${p.sub?'link':''}" ${p.sub?`data-act="openSub" data-id="${p.subId}"`:""}>${esc(p.name)}</span>
+        ${p.yours?`<span class="you-tag" title="Owned by you — packages under ernie/ are yours; peers in this role can't overwrite them.">🛡 yours</span>`:""}
+        ${p.sub?`<span class="sub-tag">subscribed</span>`:""}
+      </div></td>
+      <td>${p.sub?`<span class="vol-pill"><span class="d" style="background:var(--granted)"></span>Domain</span>`:volPill(p.volume)}</td>
+      <td class="owner">${esc(p.owner)}</td>
+      <td class="updated">${esc(p.updated)}</td>
+      <td><div class="row-actions"><button class="ghost-btn" data-act="${p.sub?'openSub':'open'}" data-id="${esc(p.sub?p.subId:p.name)}">Open</button></div></td>
+    </tr>`;
+
+  const subGroup = subs.length
+    ? `<tr class="grp-row"><td colspan="5"><span style="color:var(--granted)">● Subscribed — granted from the Domain</span> · ${subs.length}</td></tr>${subs.map(rowHtml).join("")}`
+    : "";
+
+  if(state.ownerView==="smart"){
+    const yours = rows.filter(p=>p.yours), team = rows.filter(p=>!p.yours);
+    let body = "<tbody>" + subGroup;
+    if(yours.length){
+      body += `<tr class="grp-row"><td colspan="5"><span class="you">Your recent activity</span> · ${yours.length}</td></tr>`;
+      body += yours.map(rowHtml).join("");
+    }
+    if(team.length){
+      body += `<tr class="grp-row"><td colspan="5">Across ${esc(r.name)} · ${team.length}</td></tr>`;
+      body += team.map(rowHtml).join("");
+    }
+    body += "</tbody>";
+    return `<table class="tbl">${head}${body}</table>${pkgHint()}`;
+  }
+  return `<table class="tbl">${head}<tbody>${subGroup}${rows.map(rowHtml).join("")}</tbody></table>${pkgHint()}`;
+}
+
+function pkgHint(){
+  return `<div class="hint"><span class="k">Tip</span> Packages are the shoppable unit. Switch to
+    <b class="muted">Objects</b> for raw files (browsable, never shopped) or
+    <b class="muted">Tables</b> for registered tabular data.</div>`;
+}
+
+/* ---- Objects: a navigable folder tree, mirroring the Quilt bucket view ---- */
+function countFiles(node){
+  let n=0;
+  for(const k in node){ const v=node[k]; if(v&&v.__file) n++; else if(v&&typeof v==="object") n+=countFiles(v); }
+  return n;
+}
+// the directory the user is currently looking at
+function curDir(){
+  const fs=role().fs;
+  if(!state.activeVolume) return fs;                 // top level = Volumes as folders
+  let node=fs[state.activeVolume]||{};
+  for(const seg of state.objectPath){ node=(node&&node[seg])||{}; }
+  return node;
+}
+function crumbs(){
+  let html=`<div class="crumbs"><span class="c ${!state.activeVolume?'cur':''}" data-act="crumbRoot">All Volumes</span>`;
+  if(state.activeVolume){
+    const atVol = state.objectPath.length===0;
+    html+=`<span class="sep">/</span><span class="c ${atVol?'cur':''}" data-act="crumbVol">${esc(state.activeVolume)}</span>`;
+    state.objectPath.forEach((seg,i)=>{
+      const last=i===state.objectPath.length-1;
+      html+=`<span class="sep">/</span><span class="c ${last?'cur':''}" data-act="crumbSeg" data-id="${i}">${esc(seg)}</span>`;
+    });
+  }
+  return html+`</div>`;
+}
+function objectsTree(r){
+  const dir=curDir();
+  let entries=Object.entries(dir).filter(([name])=>matchFilter(name));
+  const total=Object.keys(dir).length;
+  // folders first, then files; alpha within each
+  entries.sort((a,b)=>{
+    const fa=!a[1].__file, fb=!b[1].__file;
+    if(fa!==fb) return fa?-1:1;
+    return a[0].localeCompare(b[0]);
+  });
+
+  const head=`<thead><tr>
+    <th class="cb"><input type="checkbox" disabled></th>
+    <th>Name</th><th style="width:130px">Size</th><th style="width:170px">Last modified</th>
+  </tr></thead>`;
+
+  const rows=entries.map(([name,node])=>{
+    const isFile=!!node.__file;
+    const nameCell=isFile
+      ? `<span class="muted">${esc(name)}</span>`
+      : `<span class="path dir" data-act="enterDir" data-id="${esc(name)}">${esc(name)}/</span>`;
+    return `<tr class="row">
+      <td class="cb"><input type="checkbox"></td>
+      <td><div class="nm-cell">${isFile?iconFile():iconFolder()}${nameCell}</div></td>
+      <td class="updated">${isFile?esc(node.size):"—"}</td>
+      <td class="updated">${isFile?esc(node.mod):"—"}</td>
+    </tr>`;
+  }).join("");
+
+  const showing=`<div class="tbl-meta">Showing ${entries.length} of ${total} in this directory</div>`;
+  const body = entries.length
+    ? `<table class="tbl">${head}<tbody>${rows}</tbody></table>`
+    : emptyTable();
+
+  return `${showing}${body}
+    <div class="hint"><span class="k">Note</span> Raw objects are browsable here but are
+    <b class="muted">never units of shopping</b> — only packages, products & tables are publishable.</div>`;
+}
+
+// granted Domain tables flow back into the Tables mode
+function subscribedTables(){
+  return DOMAIN.filter(d=>!d.mine && d.tableBacked && d.state==="granted")
+    .map(d=>({ name:d.name, volume:"subscribed", rows:d.rows||"—", cols:d.cols||"—",
+               updated:"just granted", sub:true, subId:d.id }));
+}
+function tablesTable(r){
+  let rows = r.tables.filter(t=>matchVol(t) && matchFilter(t.name+" "+t.volume));
+  let subs = (!state.activeVolume ? subscribedTables() : []).filter(t=>matchFilter(t.name));
+  if(rows.length===0 && subs.length===0) return emptyTable();
+  const head = `<thead><tr><th style="width:38%">Table</th><th>Volume</th><th>Rows</th><th>Cols</th><th>Status</th></tr></thead>`;
+  const rowHtml = t => `
+    <tr class="row">
+      <td><div class="nm-cell">${iconTable()}
+        <span class="path ${t.sub?'link':''}" ${t.sub?`data-act="openSub" data-id="${t.subId}"`:""}>${esc(t.name)}</span>
+        ${t.yours?`<span class="you-tag" title="Owned by you">🛡 yours</span>`:""}
+        ${t.sub?`<span class="sub-tag">subscribed</span>`:""}</div></td>
+      <td>${t.sub?`<span class="vol-pill"><span class="d" style="background:var(--granted)"></span>Domain</span>`:volPill(t.volume)}</td>
+      <td class="updated">${esc(t.rows)}</td>
+      <td class="updated">${esc(t.cols)}</td>
+      <td>${t.sub ? stateBadge("granted")
+            : t.yours ? `<button class="ghost-btn accent" data-act="createAsset" data-id="${esc(t.name)}" title="Publish this table by wrapping it in a data asset">＋ New data asset</button>`
+            : `<span class="muted" style="font-size:12px">role-shared</span>`}</td>
+    </tr>`;
+  const subGroup = subs.length
+    ? `<tr class="grp-row"><td colspan="5"><span style="color:var(--granted)">● Subscribed — granted tables</span> · ${subs.length}</td></tr>${subs.map(rowHtml).join("")}`
+    : "";
+  return `<table class="tbl">${head}<tbody>${subGroup}${rows.map(rowHtml).join("")}</tbody></table>
+    <div class="hint"><span class="k">First-class</span> A table is content — publish it by wrapping
+    it in a <b class="muted">data asset</b> (one Volume), or request others' table-assets in the
+    <span class="link" data-act="domain">Domain</span>.</div>`;
+}
+
+function emptyTable(){
+  return `<table class="tbl"><tbody><tr><td style="padding:34px;text-align:center;color:var(--txt-dim)">
+    Nothing matches “${esc(state.filter)}”.</td></tr></tbody></table>`;
+}
+
+function volPill(v){return `<span class="vol-pill"><span class="d"></span>${esc(v)}</span>`;}
+
+/* =========================================================================
+   DOMAIN VIEW — the shop. One surface, three tabs (consumer + publisher).
+========================================================================= */
+function stateBadge(s){
+  const m = {
+    published:["· published","var(--txt-dim)"],
+    shoppable:["○ shoppable","var(--txt-mut)"],
+    requested:["◌ requested","var(--pending)"],
+    granted:  ["● granted","var(--granted)"],
+    declined: ["✕ declined","#d9544e"],
+  }[s] || ["—","var(--txt-dim)"];
+  return `<span class="badge-state" style="color:${m[1]}">${m[0]}</span>`;
+}
+function lockGlyph(d){ return d.state==="granted" ? `<span style="color:var(--granted)">●</span>` : `🔒`; }
+
+function domainView(r){
+  const tab = state.domainTab;
+  return `
+    <div class="ws-head">
+      <div class="ws-eyebrow">🛒 The shop · Acme Bio — org exchange</div>
+      <div class="ws-title">Domain</div>
+      <div class="ws-sub">Browse data you don't own yet, request access, and watch it land in your workspace under <b>Subscribed</b>.</div>
+    </div>
+    <div class="modebar">
+      <div class="mode ${tab==='browse'?'active':''}" data-act="domTab" data-id="browse">Browse</div>
+      <div class="mode ${tab==='requests'?'active':''}" data-act="domTab" data-id="requests">My requests<span class="ct">${reqCount()}</span></div>
+      <div class="mode ${tab==='published'?'active':''}" data-act="domTab" data-id="published">Published<span class="ct">${DOMAIN.filter(d=>d.mine).length}</span></div>
+    </div>
+    <div id="tableRegion">${
+      tab==='browse'    ? domBrowse() :
+      tab==='requests'  ? domRequests() : domPublished()
+    }</div>`;
+}
+function reqCount(){ return DOMAIN.filter(d=>!d.mine && ["requested","granted","declined"].includes(d.state)).length; }
+
+function domBrowse(){
+  const items = DOMAIN.filter(d=>!d.mine && matchFilter(d.name+" "+d.owner+" "+d.kind));
+  const head = `<thead><tr><th class="cb"></th><th style="width:38%">Name</th>
+    <th>Owner</th><th>Type</th><th>State</th></tr></thead>`;
+  const rows = items.map(d=>{
+    const selectable = d.state==="shoppable" || d.state==="declined";
+    const checked = state.cart.includes(d.id);
+    return `<tr class="row">
+      <td class="cb">${selectable
+        ? `<input type="checkbox" data-act="cart" data-id="${d.id}" ${checked?"checked":""}>`
+        : `<input type="checkbox" disabled>`}</td>
+      <td><div class="nm-cell"><span class="lk">${lockGlyph(d)}</span>
+        <span class="path link" data-act="inspect" data-id="${d.id}">${esc(d.name)}</span>
+        ${d.tableBacked?`<span class="tbl-tag" title="A single-Volume asset whose content is a registered table">▦ table</span>`:""}</div></td>
+      <td class="owner">${esc(d.owner)}</td>
+      <td class="muted">${d.kind}</td>
+      <td>${stateBadge(d.state)}</td>
+    </tr>`;
+  }).join("");
+  return `<table class="tbl">${head}<tbody>${rows}</tbody></table>
+    <div class="shop-foot">
+      <div class="hint"><span class="k">🔒</span> contents locked until granted ·
+        <b style="color:var(--granted)">●</b> granted, unlocked · click a name to inspect</div>
+      <button class="cta-btn ${state.cart.length?'':'off'}" data-act="openRequest">
+        Request selected (${state.cart.length})</button>
+    </div>`;
+}
+
+function domRequests(){
+  const items = DOMAIN.filter(d=>!d.mine && ["requested","granted","declined"].includes(d.state));
+  if(!items.length) return `<div class="empty-note">No requests yet — browse the Domain and request access.</div>`;
+  const head = `<thead><tr><th style="width:40%">Item</th><th>Owner</th><th>Requested</th><th>State</th><th></th></tr></thead>`;
+  const rows = items.map(d=>{
+    const sub = d.state==="granted"
+      ? `<div class="subline"><span style="color:var(--granted)">ready in workspace</span> → <button class="ghost-btn" data-act="openSub" data-id="${d.id}">Open</button></div>`
+      : d.state==="requested"
+      ? `<div class="subline grayed">waiting on ${esc(d.owner)} to grant</div>`
+      : `<div class="subline">${esc(d.owner)} declined · <button class="ghost-btn" data-act="rerequest" data-id="${d.id}">Re-request</button></div>`;
+    return `<tr class="row ${d.state==='requested'?'is-grayed':''}">
+      <td><div class="nm-cell"><span class="path">${esc(d.name)}</span></div>${sub}</td>
+      <td class="owner">${esc(d.owner)}</td>
+      <td class="updated">${esc(d.requestedAt||"—")}</td>
+      <td>${stateBadge(d.state)}</td><td></td>
+    </tr>`;
+  }).join("");
+  return `<table class="tbl">${head}<tbody>${rows}</tbody></table>
+    <div class="hint"><span class="k">●</span> granted (live, openable) ·
+      <span class="k">◌</span> requested (grayed) · <span class="k">✕</span> declined</div>`;
+}
+
+function domPublished(){
+  const items = DOMAIN.filter(d=>d.mine);
+  const head = `<thead><tr><th style="width:42%">Item</th><th>State</th><th>Action</th></tr></thead>`;
+  const rows = items.map(d=>{
+    const pending = (d.requests||[]).filter(q=>q.state==="pending");
+    const granted = (d.requests||[]).filter(q=>q.state==="granted");
+    const stateCell = d.state==="shoppable" && pending.length
+      ? `<span class="badge-state" style="color:var(--pending)">◌ ${pending.length} requested</span>`
+      : d.state==="shoppable" && granted.length
+      ? `<span class="badge-state" style="color:var(--granted)">● ${granted.length} granted</span>`
+      : stateBadge(d.state);
+    const action = d.state==="published"
+      ? `<button class="ghost-btn accent" data-act="publishFlow" data-id="${d.id}">Make shoppable ▸</button>`
+      : `<button class="ghost-btn" data-act="inspect" data-id="${d.id}">View</button>`;
+    let reqRows = pending.map(q=>`
+      <tr class="row subreq"><td colspan="3">
+        <div class="reqline"><span class="muted">${esc(q.who)} wants access · ${esc(q.when)}</span>
+          <span class="reqact">
+            <button class="ghost-btn accent" data-act="grant" data-id="${d.id}" data-who="${esc(q.who)}">Grant</button>
+            <button class="ghost-btn" data-act="decline" data-id="${d.id}" data-who="${esc(q.who)}">✕</button>
+          </span></div></td></tr>`).join("");
+    return `<tr class="row"><td><div class="nm-cell">${d.kind==='product'?iconPkg():iconTable()}
+      <span class="path">${esc(d.name)}</span>
+      <span class="muted" style="font-size:12px">· ${d.packages} pkgs · ${d.volumes.length} Vol</span></div></td>
+      <td>${stateCell}</td><td>${action}</td></tr>${reqRows}`;
+  }).join("");
+  return `<table class="tbl">${head}<tbody>${rows}</tbody></table>
+    <div class="shop-foot">
+      <div class="hint"><span class="k">Owner view</span> grant / decline requests inline · change shoppability</div>
+      <button class="cta-btn" data-act="createAsset">＋ New data asset</button>
+    </div>`;
+}
+
+/* =========================================================================
+   SUBSCRIBED DETAIL — granted data "just works" (screen 24)
+========================================================================= */
+function subscribedView(r){
+  const d = domById(state.openItem);
+  if(!d) { state.view="home"; return home(r); }
+  const tree = d.files.map(f=>`
+    <div class="sub-dir">${esc(f.dir)}</div>
+    ${f.names.map((n,i)=>`
+      <div class="sub-file">
+        <span class="nm-cell">${iconFile()}<span class="${i===0?'path':'muted'}">${esc(n)}</span></span>
+        <span class="filebtns"><button class="ghost-btn" data-act="noop">Preview</button>
+          <button class="ghost-btn" data-act="noop">Download</button></span>
+      </div>
+      ${i===0?`<pre class="preview">a,b,c
+1,2,3        ← contents now readable</pre>`:""}
+    `).join("")}`).join("");
+  return `
+    <div class="ws-head">
+      <div class="ws-eyebrow" style="color:var(--granted)">● Subscribed · unlocked</div>
+      <div class="ws-title">${esc(d.name)}</div>
+      <div class="ws-sub">${d.kind} · ${esc(d.owner)} · ${d.packages} packages ·
+        now in <b>general + content search</b>, mixed with your own data.</div>
+    </div>
+    <div class="granted-banner">🎉 Granted — contents unlocked for read, browse, preview & download. No more 🔒.</div>
+    <div class="sub-detail">${tree}</div>
+    <div class="hint"><span class="k">Tip</span> This item also appears in
+      <b class="muted">Packages</b> back in your workspace home, beside your own work.</div>`;
+}
+
+/* =========================================================================
+   SHARING MODEL — flow 6 framing + flows 4·5·7·8 (teasers, no faked depth)
+========================================================================= */
+function visionView(r){
+  return `
+    <div class="ws-head">
+      <div class="ws-eyebrow">🔗 How sharing works</div>
+      <div class="ws-title">Three levels of sharing</div>
+      <div class="ws-sub">One umbrella model — from strict isolation to read-only stewardship —
+        so access is always intentional, never accidental.</div>
+    </div>
+
+    <div class="levels">
+      <div class="level">
+        <div class="lv-n">01</div><div class="lv-h">Volumes — strict segregation</div>
+        <p>A Volume is a bucket or a slice of one. Membership in a <b>role</b> is what grants
+           you a Volume; nothing leaks across roles. This is the hard wall.</p>
+        <div class="lv-tag live">Live in this prototype</div>
+      </div>
+      <div class="level">
+        <div class="lv-n">02</div><div class="lv-h">User namespaces — intra-role write ownership</div>
+        <p>Inside a shared role, packages under <b class="mono">ernie/</b> are <b>yours</b> —
+           teammates can read them but can't silently overwrite. Ownership without a new permission system.</p>
+        <div class="lv-tag live">Live · see 🛡 yours in <span class="link" data-act="home">Packages</span></div>
+      </div>
+      <div class="level">
+        <div class="lv-n">03</div><div class="lv-h">Stewardship — read-only inter-team grants</div>
+        <p>A Steward turns owned data into <b>Data Products</b> and grants them to other roles
+           through the <b>Domain</b>. Cross-team sharing that stays read-only and revocable.</p>
+        <div class="lv-tag live">Live · see the <span class="link" data-act="domain">Domain</span></div>
+      </div>
+    </div>
+
+    <div class="ws-eyebrow" style="margin-top:34px">On the roadmap</div>
+    <div class="teasers">
+      ${teaser("🪄","Low-friction external sharing","roadmap",
+        "Collapse today's bucket → role → policy → user → push → share chain into a near one-step, Google-Drive-style action. Pick data, pick who, send.")}
+      ${teaser("▦","Tables as first-class","roadmap",
+        "Registered tables become a shoppable unit alongside Packages — query, preview, and request a table the same way you request a product. Stubbed in the Tables mode today.")}
+      ${teaser("🔔","Collaboration & notifications","soon",
+        "Owners and Stewards get notified on changes to what they own, GitHub-PR style. Undesigned today — shown here as intent, not a working feature.")}
+      ${teaser("🛡","Filtering ≠ access control","live",
+        "“Hide a teammate's clutter” or “focus just my work” is a personal view filter, never a permission change. Try the Focus control in Packages.")}
+    </div>
+
+    <div class="scope-note">Out of scope by design: arbitrary peer-to-peer (any-user-to-any-user)
+      sharing. Sharing stays role-scoped — that boundary is intentional, not a gap.</div>`;
+}
+function teaser(icon,title,tag,body){
+  const tg = { roadmap:["Roadmap","var(--pending)"], soon:["Coming soon","var(--txt-dim)"], live:["Live","var(--granted)"] }[tag];
+  return `<div class="teaser">
+    <div class="tz-top"><span class="tz-ico">${icon}</span>
+      <span class="tz-tag" style="color:${tg[1]};border-color:${tg[1]}44">${tg[0]}</span></div>
+    <div class="tz-h">${esc(title)}</div><p>${esc(body)}</p></div>`;
+}
+
+/* =========================================================================
+   MODALS — inspect (21), request (22), create asset (10), product (11), publish (12)
+========================================================================= */
+function modalLayer(){
+  if(!state.modal) return "";
+  const m=state.modal;
+  const inner = ({ inspect:modalInspect, request:modalRequest,
+    createAsset:modalCreateAsset, createProduct:modalCreateProduct, publish:modalPublish })[m.type];
+  return `<div class="overlay" data-act="closeModalBg">
+    <div class="dialog" data-act="noop">${inner(m)}</div></div>`;
+}
+function mClose(){ return `<button class="x" data-act="closeModal">✕</button>`; }
+
+function modalInspect(m){
+  const d=domById(m.id); if(!d) return "";
+  const granted = d.state==="granted";
+  const metaRows = Object.entries(d.meta).map(([k,v])=>
+    `<div class="mr"><span class="mk">${esc(k)}</span><span class="mv">${esc(v)}</span></div>`).join("");
+  const fileList = d.files.map(f=>`
+    <div class="fn-dir">${esc(f.dir)} ${f.names.length?"▸":""}
+      <span class="fn-names">${f.names.map(esc).join("&nbsp;&nbsp;")}</span></div>`).join("");
+  const lock = granted
+    ? `<div class="locked-panel unlocked">● Granted — contents unlocked for read, download & content-search.</div>`
+    : `<div class="locked-panel">🔒&nbsp; Contents locked. Request a subscription to read, download, and content-search these files.</div>`;
+  const actions = granted
+    ? `<button class="cta-btn" data-act="openSub" data-id="${d.id}">Open in workspace ▸</button>`
+    : `<button class="ghost-btn" data-act="addCart" data-id="${d.id}">Add to request</button>
+       <button class="cta-btn" data-act="requestOne" data-id="${d.id}">Request subscription ▸</button>`;
+  return `
+    <div class="dlg-head">
+      <div><span class="lk">${lockGlyph(d)}</span> <b>${esc(d.name)}</b>
+        <div class="dlg-sub">${d.kind} · ${esc(d.owner)} · ${stateBadge(d.state)}</div></div>
+      ${mClose()}
+    </div>
+    <div class="dlg-body">
+      <div class="panel-label">Metadata (visible)</div>
+      <div class="meta-grid">${metaRows}</div>
+      <div class="panel-label">File names (visible)</div>
+      <div class="fn-box">${fileList}${lock}</div>
+    </div>
+    <div class="dlg-foot">${actions}</div>`;
+}
+
+function modalRequest(m){
+  const ids = (m.ids && m.ids.length) ? m.ids : state.cart;
+  const items = ids.map(domById).filter(Boolean);
+  const rows = items.map(d=>`
+    <div class="req-item"><input type="checkbox" checked disabled>
+      <span class="path">${esc(d.name)}</span>
+      <span class="muted">${d.kind} · ${esc(d.owner)}</span>
+      <span class="goesto">→ goes to: ${esc(d.owner)}</span></div>`).join("");
+  return `
+    <div class="dlg-head"><b>Request subscriptions</b>${mClose()}</div>
+    <div class="dlg-body">
+      <div class="panel-label">Requesting ${items.length} item${items.length>1?"s":""} in one go</div>
+      <div class="req-list">${rows}</div>
+      <div class="panel-label">Message to owners (optional)</div>
+      <textarea class="msg" placeholder="Need these for the cross-study meta-analysis, kicking off next week."></textarea>
+      <div class="hint"><span class="k">ℹ</span> Each item moves to ◌ requested. You'll be notified on grant;
+        owners grant or decline per request in their Domain view.</div>
+    </div>
+    <div class="dlg-foot">
+      <button class="ghost-btn" data-act="closeModal">Cancel</button>
+      <button class="cta-btn" data-act="sendRequest" data-ids="${ids.join(",")}">Send ${items.length} request${items.length>1?"s":""}</button>
+    </div>`;
+}
+
+function modalCreateAsset(m){
+  const vols = role().volumes;
+  // seeded from a table: an asset = one Volume, subset = manual-pick that single table
+  const seedT = m.table ? (role().tables.find(t=>t.name===m.table) || {name:m.table}) : null;
+  const seedVol = seedT && seedT.volume;
+  const nameDefault = seedT ? `${seedT.name} (table)` : "Study X — assay results";
+  return `
+    <div class="dlg-head"><b>New data asset</b>${mClose()}</div>
+    <div class="dlg-body">
+      ${seedT?`<div class="seed-note">▦ Publishing the table <b>${esc(seedT.name)}</b> — a table is content,
+        so it's exposed as a single-Volume <b>data asset</b> (subset = this table).</div>`:""}
+      <div class="field"><label>Source Volume</label>
+        <select class="inp">${seedVol?`<option>${esc(seedVol)}</option>`:`<option>(an asset = one Volume)</option>`}
+          ${vols.filter(v=>v.label!==seedVol).map(v=>`<option>${esc(v.label)}</option>`).join("")}</select></div>
+      <div class="panel-label">Granularity</div>
+      <label class="radio"><input type="radio" name="gran"> Whole Volume — all packages + tables, one action</label>
+      <label class="radio"><input type="radio" name="gran" checked> Subset — choose precisely what to expose</label>
+      <div class="seg" style="margin:10px 0">
+        <button class="${seedT?'':'on'}">Prefix</button><button>Regex</button><button class="${seedT?'on':''}">Manual pick</button></div>
+      ${seedT
+        ? `<div class="match-note">1 table selected <span class="muted">— packages & objects excluded</span></div>
+           <div class="match-box"><label class="chip"><input type="checkbox" checked> ▦ ${esc(seedT.name)}</label></div>`
+        : `<input class="inp" value="study-x/" placeholder="prefix">
+           <div class="match-note">Matches 12 packages, 0 raw objects <span class="muted">— objects excluded from shopping</span></div>
+           <div class="match-box">
+             ${["study-x/run-001","study-x/run-002","study-x/run-003","study-x/run-004","study-x/qc-summary","study-x/…(7)"]
+               .map(p=>`<label class="chip"><input type="checkbox" checked> ${esc(p)}</label>`).join("")}</div>`}
+      <div class="field"><label>Asset name</label><input class="inp" id="assetName" value="${esc(nameDefault)}"></div>
+      <div class="hint"><span class="k">ℹ</span> Creating does not publish or expose. Next: publish to a Domain, then make shoppable.</div>
+    </div>
+    <div class="dlg-foot">
+      <button class="ghost-btn" data-act="closeModal">Cancel</button>
+      <button class="cta-btn" data-act="createDraft" data-kind="asset">Create data asset</button>
+    </div>`;
+}
+
+function modalCreateProduct(m){
+  const vols = role().volumes;
+  return `
+    <div class="dlg-head"><b>New data product</b>${mClose()}</div>
+    <div class="dlg-body">
+      <div class="muted" style="margin-bottom:10px">A product can span multiple Volumes (vs. an asset = one Volume).</div>
+      <div class="panel-label">Define membership by</div>
+      <div class="seg" style="margin:4px 0 10px"><button class="on">Query</button><button>Manual selection</button></div>
+      <input class="inp" value='study_id = "X"'>
+      <div class="field" style="margin-top:12px"><label>Scope</label>
+        <div class="chips-inline">${vols.map((v,i)=>`<label class="chip"><input type="checkbox" ${i<2?"checked":""}> ${esc(v.label)}</label>`).join("")}</div></div>
+      <div class="match-note">Resolves to 38 packages across 2 Volumes</div>
+      <div class="match-box mono">study-x/run-001 … run-030&nbsp;&nbsp;(assay-results)<br>cohort-2025/study-x/*&nbsp;&nbsp;(study-archive)</div>
+      <div class="panel-label">Membership <span class="warn">⚠ open product decision — spec §7</span></div>
+      <label class="radio"><input type="radio" name="mem" checked> Dynamic — new matching packages auto-included later</label>
+      <label class="radio"><input type="radio" name="mem"> Static — freeze to the 38 packages matching now</label>
+      <div class="field"><label>Product name</label><input class="inp" id="productName" value="Study X — full release"></div>
+      <div class="hint"><span class="k">ℹ</span> Creating does not publish or expose.</div>
+    </div>
+    <div class="dlg-foot">
+      <button class="ghost-btn" data-act="closeModal">Cancel</button>
+      <button class="cta-btn" data-act="createDraft" data-kind="product">Create data product</button>
+    </div>`;
+}
+
+function modalPublish(m){
+  const d = m.id ? domById(m.id) : m.draft;
+  const order = ["created","published","shoppable"];
+  const at = d.state==="shoppable" ? 2 : d.state==="published" ? 1 : 0;
+  const dot = i => i<at ? `<span class="lc done">●</span>` : i===at ? `<span class="lc cur">●</span>` : `<span class="lc">○</span>`;
+  const bar = `<div class="lifecycle">
+    ${dot(0)}<span class="lc-line ${at>0?'on':''}"></span>${dot(1)}<span class="lc-line ${at>1?'on':''}"></span>${dot(2)}
+    <span class="lc-line dash"></span><span class="lc">○</span>
+    <div class="lc-labels"><span>created</span><span>published</span><span>shoppable</span><span class="muted">requestable</span></div>
+  </div>`;
+  return `
+    <div class="dlg-head"><div><b>${esc(d.name)}</b>
+      <div class="dlg-sub">${d.kind} · ${d.kind==="table"?`${esc(d.rows)} rows · ${esc(d.cols)} cols`:`${d.packages} packages`} · ${d.volumes.length} Volume${d.volumes.length>1?"s":""}</div></div>${mClose()}</div>
+    <div class="dlg-body">
+      <div class="panel-label">Lifecycle</div>${bar}
+      <div class="step-card ${at>=1?'done':''}">
+        <div class="step-h">Step 2 · Publish to a Domain ${at>=1?'<span class="ok">✓ published</span>':''}</div>
+        <div class="muted">Registers this product in the Domain catalog. Not yet visible to shop.</div>
+        ${at<1?`<button class="cta-btn" data-act="doPublish">Publish</button>`:""}
+      </div>
+      <div class="step-card ${at>=2?'done':(at<1?'disabled':'')}">
+        <div class="step-h">Step 3 · Make shoppable ${at>=2?'<span class="ok">✓ shoppable</span>':(at<1?'<span class="muted">⟳ enabled after publish</span>':'')}</div>
+        <div class="muted">Exposes metadata + file names to consumers, who can then request access. Contents stay locked until you grant each request.</div>
+        ${at===1?`<button class="cta-btn" data-act="doShoppable">Make shoppable</button>`:""}
+      </div>
+    </div>
+    <div class="dlg-foot"><button class="ghost-btn" data-act="closeModal">${at>=2?"Done":"Close"}</button></div>`;
+}
+
+/* =========================================================================
+   ICONS (inline svg / glyphs)
+========================================================================= */
+function iconSearch(s=15){return `<svg width="${s}" height="${s}" viewBox="0 0 16 16" fill="none">
+  <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/>
+  <path d="M11 11l3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;}
+function iconPkg(){return `<svg class="ic" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <path d="M8 1.5l5.5 3v7L8 14.5 2.5 11.5v-7L8 1.5z" stroke="currentColor" stroke-width="1.3"/>
+  <path d="M2.5 4.5L8 7.5l5.5-3M8 7.5v7" stroke="currentColor" stroke-width="1.3"/></svg>`;}
+function iconFolder(){return `<svg class="ic" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <path d="M1.5 4.5a1 1 0 011-1h3l1.2 1.4h6.8a1 1 0 011 1v6.1a1 1 0 01-1 1h-12a1 1 0 01-1-1V4.5z"
+  stroke="currentColor" stroke-width="1.3"/></svg>`;}
+function iconFile(){return `<svg class="ic" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <path d="M4 1.5h5l3.5 3.5v9a1 1 0 01-1 1H4a1 1 0 01-1-1v-11a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3"/>
+  <path d="M9 1.5V5h3.5" stroke="currentColor" stroke-width="1.3"/></svg>`;}
+function iconTable(){return `<svg class="ic" width="16" height="16" viewBox="0 0 16 16" fill="none">
+  <rect x="2" y="3" width="12" height="10" rx="1" stroke="currentColor" stroke-width="1.3"/>
+  <path d="M2 6.5h12M6.5 6.5v6.5" stroke="currentColor" stroke-width="1.3"/></svg>`;}
+
+/* =========================================================================
+   EVENTS
+========================================================================= */
+let toastTimer=null;
+function toast(html){
+  const t=document.getElementById("toast");
+  t.innerHTML=html;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2600);
+}
+
+function wire(){
+  // delegated clicks
+  document.getElementById("app").onclick = e=>{
+    const el = e.target.closest("[data-act]");
+    if(!el) { if(state.roleMenuOpen){state.roleMenuOpen=false;render();} return; }
+    const act = el.dataset.act, id = el.dataset.id;
+    switch(act){
+      case "home":   state.view="home"; state.activeVolume=null; state.filter=""; state.roleMenuOpen=false; render(); break;
+      case "domain": state.view="domain"; state.filter=""; state.roleMenuOpen=false; render(); break;
+      case "toggleRole": state.roleMenuOpen=!state.roleMenuOpen; render(); break;
+      case "toggleTheme": state.theme = state.theme==="dark"?"light":"dark"; render(); break;
+      case "setRole":
+        if(id!==state.roleId){ state.roleId=id; state.view="home"; state.activeVolume=null;
+          state.filter=""; state.mode="packages"; }
+        state.roleMenuOpen=false; render();
+        toast(`Switched workspace → <b>${esc(ROLES[state.roleId].name)}</b>`); break;
+      case "vol":    state.view="home"; state.mode = state.mode==="objects"?"objects":"packages";
+                     state.activeVolume = state.activeVolume===id?null:id; state.objectPath=[]; state.filter=""; render(); break;
+      case "mode":   state.mode=id; state.filter=""; refreshMain(); break;
+      case "owner":  state.ownerView=id; renderTable(); refreshOwnerSeg(); break;
+      case "focusClear": state.focus="all"; refreshMain(); break;
+      case "vision": state.view="vision"; state.filter=""; state.roleMenuOpen=false; render(); break;
+      case "open":   toast(`Opening package <b>${esc(id)}</b> — package detail is a later pass.`); break;
+      // Objects tree navigation
+      case "enterDir":
+        if(!state.activeVolume){ state.activeVolume=id; state.objectPath=[]; }
+        else state.objectPath=[...state.objectPath, id];
+        state.filter=""; refreshMain(); break;
+      case "crumbRoot": state.activeVolume=null; state.objectPath=[]; state.filter=""; refreshMain(); break;
+      case "crumbVol":  state.objectPath=[]; state.filter=""; refreshMain(); break;
+      case "crumbSeg":  state.objectPath=state.objectPath.slice(0,Number(id)+1); state.filter=""; refreshMain(); break;
+
+      // ---- Domain / shopping ----
+      case "domTab": state.domainTab=id; state.filter=""; refreshMain(); break;
+      case "cart":   toggleCart(id); renderTable(); break;
+      case "addCart":
+        if(!state.cart.includes(id)) state.cart.push(id);
+        state.modal=null; render(); toast(`Added <b>${esc(domById(id).name)}</b> to request`); break;
+      case "requestOne": state.cart=[id]; state.modal={type:"request", ids:[id]}; render(); break;
+      case "openRequest": if(state.cart.length){ state.modal={type:"request"}; render(); } break;
+      case "sendRequest": sendRequests((el.dataset.ids||"").split(",").filter(Boolean)); break;
+      case "inspect": state.modal={type:"inspect", id}; render(); break;
+      case "rerequest": sendRequests([id]); break;
+      case "grant":  resolveRequest(id, el.dataset.who, "granted"); break;
+      case "decline":resolveRequest(id, el.dataset.who, "declined"); break;
+      case "openSub":
+        state.view="subscribed"; state.openItem=id; state.modal=null;
+        { const d=domById(id); if(d) d._new=false; } render(); break;
+
+      // ---- Publisher create / publish ----
+      case "createAsset":   state.modal={type:"createAsset", table:id||null}; state.roleMenuOpen=false; render(); break;
+      case "createProduct": state.modal={type:"createProduct"}; state.roleMenuOpen=false; render(); break;
+      case "createDraft":   createDraft(el.dataset.kind); break;
+      case "publishFlow":   state.modal={type:"publish", id}; render(); break;
+      case "doPublish":     doPublish(); break;
+      case "doShoppable":   doShoppable(); break;
+
+      // ---- modal chrome ----
+      case "closeModal":
+      case "closeModalBg":  state.modal=null; render(); break;
+      case "noop": break;
+    }
+  };
+  wireInputs();
+}
+
+/* ---- shopping state-machine actions ---- */
+function toggleCart(id){
+  const i=state.cart.indexOf(id);
+  if(i<0) state.cart.push(id); else state.cart.splice(i,1);
+}
+function sendRequests(ids){
+  let n=0;
+  ids.forEach((id,i)=>{
+    const d=domById(id); if(!d) return;
+    d.state="requested"; d.requestedAt="just now"; n++;
+    // fake latency — the owner "grants", and it just appears (the payoff).
+    // fire-and-forget: the state guard below makes a stale fire a no-op.
+    setTimeout(()=>{
+      if(d.state!=="requested") return;
+      d.state="granted"; d._new=true;
+      toast(`<b>${esc(d.owner)}</b> granted access — <b>${esc(shortName(d))}</b> is now in your workspace`);
+      render();
+    }, 2200 + i*700);
+  });
+  state.cart=[]; state.modal=null; state.view="domain"; state.domainTab="requests"; render();
+  if(n) toast(`Sent ${n} request${n>1?"s":""} · owners notified`);
+}
+function resolveRequest(id, who, outcome){
+  const d=domById(id); if(!d) return;
+  const q=(d.requests||[]).find(x=>x.who===who); if(q) q.state=outcome;
+  render(); toast(`${outcome==="granted"?"Granted":"Declined"} <b>${esc(who)}</b> on <b>${esc(shortName(d))}</b>`);
+}
+let idSeq=1;
+function createDraft(kind){
+  const nameEl=document.getElementById(kind==="asset"?"assetName":"productName");
+  const name=(nameEl&&nameEl.value.trim())||(kind==="asset"?"New data asset":"New data product");
+  const vols=role().volumes;
+  // a table seed produces a single-Volume asset whose content is that table
+  const seedTable = (kind==="asset" && state.modal && state.modal.table)
+    ? (role().tables.find(t=>t.name===state.modal.table) || {name:state.modal.table}) : null;
+  const draft = seedTable ? {
+    id:"mine-"+(idSeq++), name, kind:"asset", owner:"ernie@", tableBacked:true,
+    volumes:[seedTable.volume||vols[0].label], packages:1, rows:seedTable.rows||"—", cols:seedTable.cols||"—",
+    membership:"subset · 1 table", state:"created", mine:true,
+    meta:{ rows:seedTable.rows||"—", columns:seedTable.cols||"—", description:`Single-Volume asset wrapping table ${seedTable.name}.` },
+    files:[{ dir:"columns:", names:["…"] }], pkgs:[seedTable.name], requests:[],
+  } : {
+    id:"mine-"+(idSeq++), name, kind, owner:"ernie@",
+    volumes: kind==="asset"?[vols[0].label]:vols.slice(0,2).map(v=>v.label),
+    packages: kind==="asset"?12:38, membership: kind==="asset"?"subset (prefix)":"dynamic (query)",
+    state:"created", mine:true,
+    meta:{ description:`${name} — created from ${role().name}.` },
+    files:[{ dir:"study-x/", names:["matrix.csv","metadata.json"] }],
+    pkgs:["study-x/run-001"], requests:[],
+  };
+  state.modal={type:"publish", draft}; render();
+}
+function doPublish(){
+  const m=state.modal;
+  let d = m.id ? domById(m.id) : m.draft;
+  if(!domById(d.id)){ DOMAIN.push(d); }   // draft enters the catalog on publish
+  d.state="published";
+  state.modal={type:"publish", id:d.id}; render();
+  toast(`Published <b>${esc(d.name)}</b> to the Domain catalog`);
+}
+function doShoppable(){
+  const d=domById(state.modal.id); if(d) d.state="shoppable";
+  state.modal=null; state.view="domain"; state.domainTab="published"; render();
+  toast(`<b>${esc(d?d.name:"Item")}</b> is now ○ shoppable — consumers can request it`);
+}
+
+// (re)attach handlers to the filter input inside the main panel
+function wireInputs(){
+  const fb = document.getElementById("filterBox");
+  if(fb) fb.oninput = e=>{ state.filter=e.target.value; renderTable(); };
+  const fc = document.getElementById("focusSel");
+  if(fc) fc.onchange = e=>{ state.focus=e.target.value; refreshMain(); };
+  const sb = document.getElementById("searchBox");
+  if(sb) sb.oninput = e=>{
+    state.filter=e.target.value;
+    if(state.view==="subscribed"){   // jump back to the searchable workspace
+      state.view="home"; render();
+      const x=document.getElementById("searchBox");
+      if(x){ x.focus(); x.value=state.filter; x.setSelectionRange(x.value.length,x.value.length); }
+    } else renderTable();   // home filters packages/objects/tables; domain filters the shop
+  };
+}
+
+function renderTable(){
+  const reg=document.getElementById("tableRegion");
+  if(!reg) return;
+  if(state.view==="domain"){
+    reg.innerHTML = state.domainTab==="browse" ? domBrowse()
+                  : state.domainTab==="requests" ? domRequests() : domPublished();
+  } else {
+    reg.innerHTML = tableForMode(role());
+  }
+}
+function refreshMain(){
+  const inner=document.getElementById("mainInner");
+  if(inner){ inner.innerHTML = mainPanel(role()); wireInputs(); }
+}
+function refreshOwnerSeg(){
+  document.querySelectorAll('.seg [data-act="owner"]').forEach(b=>{
+    b.classList.toggle("on", b.dataset.id===state.ownerView);
+  });
+}
+
+render();
+</script>
+</body>
+</html>
