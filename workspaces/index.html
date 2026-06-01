@@ -319,6 +319,10 @@
   .nm-cell .link{cursor:pointer}
   .nm-cell .link:hover{color:var(--accent)}
   .sub-tag{font-size:10px;color:var(--granted);border:1px solid #2c5e48;padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  .tbl-tag{font-size:10px;color:var(--txt-mut);border:1px solid var(--line);padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  .seed-note{background:var(--inset);border:1px solid var(--line);border-left:2px solid var(--accent);
+    border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--txt-mut);margin-bottom:6px}
+  .seed-note b{color:var(--txt)}
   .newtag{font-size:9.5px;color:var(--bg);background:var(--accent);padding:1px 6px;border-radius:999px;font-weight:700;margin-left:auto}
   .nav.child.sub{padding-left:30px}
   .shop-foot{display:flex;align-items:center;gap:16px;margin-top:14px}
@@ -588,19 +592,19 @@ let DOMAIN = [
     meta:{ panel:"chem + heme", released:"2026-04-30", description:"Q1 clinical lab results." },
     files:[{ dir:"labs-q1/", names:["chemistry.parquet","hematology.parquet"] }], pkgs:["labs-q1/chemistry"] },
 
-  // --- tables as a first-class shoppable unit (flow 7) ---
-  { id:"tbl-expr", name:"Expression matrix — Study X", kind:"table", owner:"team-a",
-    volumes:["assay-results"], packages:1, rows:"4.2M", cols:18, membership:"registered table",
+  // --- tables published as single-Volume assets (flow 7: tables are first-class content) ---
+  { id:"tbl-expr", name:"Expression matrix — Study X", kind:"asset", owner:"team-a", tableBacked:true,
+    volumes:["assay-results"], packages:1, rows:"4.2M", cols:18, membership:"subset · 1 table",
     state:"shoppable", mine:false,
     meta:{ assay:"RNA-seq", rows:"4,200,000", columns:"18", released:"2026-05-20",
-           description:"Gene × sample expression matrix for Study X." },
+           description:"Gene × sample expression matrix for Study X (single-Volume asset wrapping a table)." },
     files:[{ dir:"columns:", names:["gene_id","sample_id","tpm","counts","…14 more"] }],
     pkgs:["study_x_expression"] },
 
-  { id:"tbl-prot", name:"Proteomics intensities", kind:"table", owner:"team-d",
-    volumes:["proteomics"], packages:1, rows:"880K", cols:24, membership:"registered table",
+  { id:"tbl-prot", name:"Proteomics intensities", kind:"asset", owner:"team-d", tableBacked:true,
+    volumes:["proteomics"], packages:1, rows:"880K", cols:24, membership:"subset · 1 table",
     state:"shoppable", mine:false,
-    meta:{ assay:"LC-MS/MS", rows:"880,000", columns:"24", description:"Protein intensities, 2025 cohort." },
+    meta:{ assay:"LC-MS/MS", rows:"880,000", columns:"24", description:"Protein intensities, 2025 cohort (asset wrapping a table)." },
     files:[{ dir:"columns:", names:["protein_id","sample_id","intensity","…21 more"] }],
     pkgs:["proteomics_intensities"] },
 
@@ -835,7 +839,7 @@ function matchFocus(p){
 // granted Domain items contribute their packages back into the workspace
 function subscribedPkgs(){
   const out=[];
-  DOMAIN.filter(d=>!d.mine && d.state==="granted").forEach(d=>{
+  DOMAIN.filter(d=>!d.mine && d.state==="granted" && !d.tableBacked).forEach(d=>{
     (d.pkgs||[]).forEach(name=>out.push({
       name, volume:"subscribed", owner:d.owner, updated:"just granted", yours:false, sub:true, subId:d.id }));
   });
@@ -960,7 +964,7 @@ function objectsTree(r){
 
 // granted Domain tables flow back into the Tables mode
 function subscribedTables(){
-  return DOMAIN.filter(d=>!d.mine && d.kind==="table" && d.state==="granted")
+  return DOMAIN.filter(d=>!d.mine && d.tableBacked && d.state==="granted")
     .map(d=>({ name:d.name, volume:"subscribed", rows:d.rows||"—", cols:d.cols||"—",
                updated:"just granted", sub:true, subId:d.id }));
 }
@@ -979,15 +983,15 @@ function tablesTable(r){
       <td class="updated">${esc(t.rows)}</td>
       <td class="updated">${esc(t.cols)}</td>
       <td>${t.sub ? stateBadge("granted")
-            : t.yours ? `<button class="ghost-btn accent" data-act="publishTable" data-id="${esc(t.name)}">Make shoppable ▸</button>`
+            : t.yours ? `<button class="ghost-btn accent" data-act="createAsset" data-id="${esc(t.name)}" title="Publish this table by wrapping it in a data asset">＋ New data asset</button>`
             : `<span class="muted" style="font-size:12px">role-shared</span>`}</td>
     </tr>`;
   const subGroup = subs.length
     ? `<tr class="grp-row"><td colspan="5"><span style="color:var(--granted)">● Subscribed — granted tables</span> · ${subs.length}</td></tr>${subs.map(rowHtml).join("")}`
     : "";
   return `<table class="tbl">${head}<tbody>${subGroup}${rows.map(rowHtml).join("")}</tbody></table>
-    <div class="hint"><span class="k">First-class</span> Tables are a shoppable unit like Packages —
-    publish your own with <b class="muted">Make shoppable</b>, or request others' in the
+    <div class="hint"><span class="k">First-class</span> A table is content — publish it by wrapping
+    it in a <b class="muted">data asset</b> (one Volume), or request others' table-assets in the
     <span class="link" data-act="domain">Domain</span>.</div>`;
 }
 
@@ -1045,7 +1049,8 @@ function domBrowse(){
         ? `<input type="checkbox" data-act="cart" data-id="${d.id}" ${checked?"checked":""}>`
         : `<input type="checkbox" disabled>`}</td>
       <td><div class="nm-cell"><span class="lk">${lockGlyph(d)}</span>
-        <span class="path link" data-act="inspect" data-id="${d.id}">${esc(d.name)}</span></div></td>
+        <span class="path link" data-act="inspect" data-id="${d.id}">${esc(d.name)}</span>
+        ${d.tableBacked?`<span class="tbl-tag" title="A single-Volume asset whose content is a registered table">▦ table</span>`:""}</div></td>
       <td class="owner">${esc(d.owner)}</td>
       <td class="muted">${d.kind}</td>
       <td>${stateBadge(d.state)}</td>
@@ -1270,23 +1275,32 @@ function modalRequest(m){
 
 function modalCreateAsset(m){
   const vols = role().volumes;
+  // seeded from a table: an asset = one Volume, subset = manual-pick that single table
+  const seedT = m.table ? (role().tables.find(t=>t.name===m.table) || {name:m.table}) : null;
+  const seedVol = seedT && seedT.volume;
+  const nameDefault = seedT ? `${seedT.name} (table)` : "Study X — assay results";
   return `
     <div class="dlg-head"><b>New data asset</b>${mClose()}</div>
     <div class="dlg-body">
+      ${seedT?`<div class="seed-note">▦ Publishing the table <b>${esc(seedT.name)}</b> — a table is content,
+        so it's exposed as a single-Volume <b>data asset</b> (subset = this table).</div>`:""}
       <div class="field"><label>Source Volume</label>
-        <select class="inp"><option>(an asset = one Volume)</option>
-          ${vols.map(v=>`<option>${esc(v.label)}</option>`).join("")}</select></div>
+        <select class="inp">${seedVol?`<option>${esc(seedVol)}</option>`:`<option>(an asset = one Volume)</option>`}
+          ${vols.filter(v=>v.label!==seedVol).map(v=>`<option>${esc(v.label)}</option>`).join("")}</select></div>
       <div class="panel-label">Granularity</div>
       <label class="radio"><input type="radio" name="gran"> Whole Volume — all packages + tables, one action</label>
       <label class="radio"><input type="radio" name="gran" checked> Subset — choose precisely what to expose</label>
       <div class="seg" style="margin:10px 0">
-        <button class="on">Prefix</button><button>Regex</button><button>Manual pick</button></div>
-      <input class="inp" value="study-x/" placeholder="prefix">
-      <div class="match-note">Matches 12 packages, 0 raw objects <span class="muted">— objects excluded from shopping</span></div>
-      <div class="match-box">
-        ${["study-x/run-001","study-x/run-002","study-x/run-003","study-x/run-004","study-x/qc-summary","study-x/…(7)"]
-          .map(p=>`<label class="chip"><input type="checkbox" checked> ${esc(p)}</label>`).join("")}</div>
-      <div class="field"><label>Asset name</label><input class="inp" id="assetName" value="Study X — assay results"></div>
+        <button class="${seedT?'':'on'}">Prefix</button><button>Regex</button><button class="${seedT?'on':''}">Manual pick</button></div>
+      ${seedT
+        ? `<div class="match-note">1 table selected <span class="muted">— packages & objects excluded</span></div>
+           <div class="match-box"><label class="chip"><input type="checkbox" checked> ▦ ${esc(seedT.name)}</label></div>`
+        : `<input class="inp" value="study-x/" placeholder="prefix">
+           <div class="match-note">Matches 12 packages, 0 raw objects <span class="muted">— objects excluded from shopping</span></div>
+           <div class="match-box">
+             ${["study-x/run-001","study-x/run-002","study-x/run-003","study-x/run-004","study-x/qc-summary","study-x/…(7)"]
+               .map(p=>`<label class="chip"><input type="checkbox" checked> ${esc(p)}</label>`).join("")}</div>`}
+      <div class="field"><label>Asset name</label><input class="inp" id="assetName" value="${esc(nameDefault)}"></div>
       <div class="hint"><span class="k">ℹ</span> Creating does not publish or expose. Next: publish to a Domain, then make shoppable.</div>
     </div>
     <div class="dlg-foot">
@@ -1428,10 +1442,9 @@ function wire(){
         { const d=domById(id); if(d) d._new=false; } render(); break;
 
       // ---- Publisher create / publish ----
-      case "createAsset":   state.modal={type:"createAsset"}; state.roleMenuOpen=false; render(); break;
+      case "createAsset":   state.modal={type:"createAsset", table:id||null}; state.roleMenuOpen=false; render(); break;
       case "createProduct": state.modal={type:"createProduct"}; state.roleMenuOpen=false; render(); break;
       case "createDraft":   createDraft(el.dataset.kind); break;
-      case "publishTable":  publishTable(id); break;
       case "publishFlow":   state.modal={type:"publish", id}; render(); break;
       case "doPublish":     doPublish(); break;
       case "doShoppable":   doShoppable(); break;
@@ -1477,7 +1490,16 @@ function createDraft(kind){
   const nameEl=document.getElementById(kind==="asset"?"assetName":"productName");
   const name=(nameEl&&nameEl.value.trim())||(kind==="asset"?"New data asset":"New data product");
   const vols=role().volumes;
-  const draft={
+  // a table seed produces a single-Volume asset whose content is that table
+  const seedTable = (kind==="asset" && state.modal && state.modal.table)
+    ? (role().tables.find(t=>t.name===state.modal.table) || {name:state.modal.table}) : null;
+  const draft = seedTable ? {
+    id:"mine-"+(idSeq++), name, kind:"asset", owner:"ernie@", tableBacked:true,
+    volumes:[seedTable.volume||vols[0].label], packages:1, rows:seedTable.rows||"—", cols:seedTable.cols||"—",
+    membership:"subset · 1 table", state:"created", mine:true,
+    meta:{ rows:seedTable.rows||"—", columns:seedTable.cols||"—", description:`Single-Volume asset wrapping table ${seedTable.name}.` },
+    files:[{ dir:"columns:", names:["…"] }], pkgs:[seedTable.name], requests:[],
+  } : {
     id:"mine-"+(idSeq++), name, kind, owner:"ernie@",
     volumes: kind==="asset"?[vols[0].label]:vols.slice(0,2).map(v=>v.label),
     packages: kind==="asset"?12:38, membership: kind==="asset"?"subset (prefix)":"dynamic (query)",
@@ -1485,17 +1507,6 @@ function createDraft(kind){
     meta:{ description:`${name} — created from ${role().name}.` },
     files:[{ dir:"study-x/", names:["matrix.csv","metadata.json"] }],
     pkgs:["study-x/run-001"], requests:[],
-  };
-  state.modal={type:"publish", draft}; render();
-}
-function publishTable(name){
-  const t = role().tables.find(x=>x.name===name) || {name, rows:"—", cols:"—"};
-  const draft = {
-    id:"mine-"+(idSeq++), name:t.name, kind:"table", owner:"ernie@",
-    volumes:[t.volume||role().volumes[0].label], packages:1, rows:t.rows, cols:t.cols,
-    membership:"registered table", state:"created", mine:true,
-    meta:{ rows:t.rows, columns:t.cols, description:`Registered table ${t.name}.` },
-    files:[{ dir:"columns:", names:["…"] }], pkgs:[t.name], requests:[],
   };
   state.modal={type:"publish", draft}; render();
 }

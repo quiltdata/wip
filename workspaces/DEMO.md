@@ -54,8 +54,11 @@ Click **🛒 Domain** in the rail. Same shell, same table, same status words.
 
 ## 5 · Tables are first-class (20s)
 
-- **Tables** mode → your `ernie_qc_metrics` has **Make shoppable ▸** (same publish flow).
-- In the **Domain**, tables shop exactly like packages.
+- **Tables** mode → your `ernie_qc_metrics` has **＋ New data asset**. A table is *content*,
+  so you publish it by wrapping it in a single-Volume **data asset** (subset = that table) —
+  same `create → publish → shoppable` path, no special noun.
+- In the **Domain**, those show as type **asset** with a `▦ table` tag — they shop exactly
+  like any other asset.
 
 ## 6 · The framing — three levels of sharing (30s)
 
@@ -70,11 +73,13 @@ Click **🔗 Sharing model**:
 ---
 
 ## What to *not* claim
+
 - Arbitrary peer-to-peer sharing is **out of scope** — sharing stays role-scoped (stated
   on the Sharing model screen, so the boundary reads as intentional).
 - Notifications are a known gap — shown as intent only.
 - Don't surface the architecture (Postgres/AVP/Cedar/DataZone). This demo is about *feel*.
 
 ## Note for the driver
+
 The grant in step 3 is on a **~2–3s timer** (fake latency, to sell the moment). If you'd
 rather grant manually on screen, do it from **Domain ▸ Published** instead.
