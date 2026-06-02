@@ -931,9 +931,10 @@ function packagesTable(r){
 }
 
 function pkgHint(){
-  return `<div class="hint"><span class="k">Tip</span> Packages are the shoppable unit. Switch to
-    <b class="muted">Objects</b> for raw files (browsable, never shopped) or
-    <b class="muted">Tables</b> for registered tabular data.</div>`;
+  return `<div class="hint"><span class="k">Tip</span> A package is the default content of a
+    <b class="muted">data asset</b> — tables and models are the same asset with a content-type tag,
+    not separate nouns. Switch to <b class="muted">Objects</b> for raw files (browsable, never
+    shopped) or <b class="muted">Tables</b> for registered tabular data.</div>`;
 }
 
 /* ---- Objects: a navigable folder tree, mirroring the Quilt bucket view ---- */
@@ -998,7 +999,8 @@ function objectsTree(r){
 
   return `${showing}${body}
     <div class="hint"><span class="k">Note</span> Raw objects are browsable here but are
-    <b class="muted">never units of shopping</b> — only packages, products & tables are publishable.</div>`;
+    <b class="muted">never units of shopping</b> — to publish, wrap them in a data asset.
+    Packages, tables & models all shop as typed assets.</div>`;
 }
 
 // granted Domain tables flow back into the Tables mode
