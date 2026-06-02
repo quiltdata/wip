@@ -320,6 +320,17 @@
   .nm-cell .link:hover{color:var(--accent)}
   .sub-tag{font-size:10px;color:var(--granted);border:1px solid #2c5e48;padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
   .tbl-tag{font-size:10px;color:var(--txt-mut);border:1px solid var(--line);padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  .model-tag{font-size:10px;color:var(--accent);border:1px solid var(--accent);padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  /* model card (inspect) — typed-metadata generalization of the quality/provenance indicators */
+  .card-grid{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;font-size:13px;margin-bottom:10px}
+  .card-grid .ck{color:var(--txt-mut);font-weight:600;white-space:nowrap}
+  .card-grid .cv{color:var(--txt)}
+  .prov-link{background:var(--inset);border:1px solid var(--line);border-left:2px solid var(--accent);
+    border-radius:8px;padding:9px 13px;font-size:12.5px;color:var(--txt-mut);margin-top:4px}
+  .prov-link .link{color:var(--accent);cursor:pointer;font-weight:600}
+  .prov-link .link:hover{text-decoration:underline}
+  .api-note{font-size:11.5px;color:var(--txt-dim);margin-top:8px}
+  .api-note code{background:var(--inset);border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--txt-mut)}
   .seed-note{background:var(--inset);border:1px solid var(--line);border-left:2px solid var(--accent);
     border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--txt-mut);margin-bottom:6px}
   .seed-note b{color:var(--txt)}
@@ -597,16 +608,43 @@ let DOMAIN = [
     volumes:["assay-results"], packages:1, rows:"4.2M", cols:18, membership:"subset · 1 table",
     state:"shoppable", mine:false,
     meta:{ assay:"RNA-seq", rows:"4,200,000", columns:"18", released:"2026-05-20",
-           description:"Gene × sample expression matrix for Study X (single-Volume asset wrapping a table)." },
+           description:"Gene × sample expression matrix for Study X (single-Volume Asset wrapping a table artifact)." },
     files:[{ dir:"columns:", names:["gene_id","sample_id","tpm","counts","…14 more"] }],
     pkgs:["study_x_expression"] },
 
   { id:"tbl-prot", name:"Proteomics intensities", kind:"asset", owner:"team-d", tableBacked:true,
     volumes:["proteomics"], packages:1, rows:"880K", cols:24, membership:"subset · 1 table",
     state:"shoppable", mine:false,
-    meta:{ assay:"LC-MS/MS", rows:"880,000", columns:"24", description:"Protein intensities, 2025 cohort (asset wrapping a table)." },
+    meta:{ assay:"LC-MS/MS", rows:"880,000", columns:"24", description:"Protein intensities, 2025 cohort (Asset wrapping a table artifact)." },
     files:[{ dir:"columns:", names:["protein_id","sample_id","intensity","…21 more"] }],
     pkgs:["proteomics_intensities"] },
+
+  // --- models published as single-Volume assets (issue #2: a model is content wrapped in a typed asset) ---
+  // Public / foundation → direct access (already unlocked, like a Volume the role owns outright).
+  { id:"model-foundation", name:"BioFoundation-1B", kind:"asset", owner:"core", modelBacked:true, tier:"foundation",
+    volumes:["shared-ref"], packages:1, membership:"public model · direct access",
+    state:"granted", mine:false, requestedAt:"public",
+    meta:{ task:"Molecular representation / embeddings", architecture:"Transformer · 1.2B params",
+           license:"Apache-2.0 (public)", released:"2026-01-15",
+           description:"Open foundation model for molecular embeddings (single-Volume Asset wrapping a model artifact)." },
+    card:{ training:"Public multi-omics corpus (open release)",
+           performance:"AUROC 0.91 on the open held-out benchmark",
+           applicability:"General molecular representation — not validated for clinical decisions" },
+    files:[{ dir:"models/biofoundation-1b/", names:["weights.safetensors","config.json","tokenizer.json"] }],
+    pkgs:["models/biofoundation-1b"] },
+
+  // Private / fine-tuned → granted access (shops through the same request→grant flow as any shared asset).
+  { id:"model-onco", name:"Onco-Response v2", kind:"asset", owner:"team-a", modelBacked:true, tier:"finetuned",
+    volumes:["assay-results"], packages:1, membership:"private model · subscription",
+    state:"shoppable", mine:false, producedBy:"studyx-full",
+    meta:{ task:"Drug-response prediction", architecture:"Fine-tuned on BioFoundation-1B",
+           license:"Internal — Acme Bio only", released:"2026-05-22",
+           description:"Fine-tuned response predictor (single-Volume Asset wrapping a model artifact)." },
+    card:{ training:"Trained on the Study X — full release Product",
+           performance:"AUROC 0.88 · PR-AUC 0.79 (Study X holdout)",
+           applicability:"Oncology response prediction — in-domain to Study X cohorts only" },
+    files:[{ dir:"models/onco-response-v2/", names:["weights.safetensors","config.json","metrics.json"] }],
+    pkgs:["models/onco-response-v2"] },
 
   // --- mine: things the user has published (Published tab, screen 13) ---
   { id:"mine-qc", name:"Ernie — QC metrics", kind:"asset", owner:"ernie@",
@@ -723,8 +761,8 @@ function rail(r){
     </div>
 
     <div class="divider"></div>
-    <div class="cta" data-act="createAsset"><span class="plus">＋</span> New data asset</div>
-    <div class="cta" data-act="createProduct"><span class="plus">＋</span> New data product</div>
+    <div class="cta" data-act="createAsset"><span class="plus">＋</span> New Asset</div>
+    <div class="cta" data-act="createProduct"><span class="plus">＋</span> New Product</div>
   </div>`;
 }
 
@@ -840,8 +878,11 @@ function matchFocus(p){
 function subscribedPkgs(){
   const out=[];
   DOMAIN.filter(d=>!d.mine && d.state==="granted" && !d.tableBacked).forEach(d=>{
+    // Direct-access assets (public foundation models, role-owned volumes) were never
+    // shopped for, so "just granted" would misrepresent them — they've always been accessible.
+    const updated = d.requestedAt==="public" ? "direct access" : "just granted";
     (d.pkgs||[]).forEach(name=>out.push({
-      name, volume:"subscribed", owner:d.owner, updated:"just granted", yours:false, sub:true, subId:d.id }));
+      name, volume:"subscribed", owner:d.owner, updated, yours:false, sub:true, subId:d.id, model:d.modelBacked }));
   });
   return out;
 }
@@ -862,6 +903,7 @@ function packagesTable(r){
         ${iconPkg()}
         <span class="path ${p.sub?'link':''}" ${p.sub?`data-act="openSub" data-id="${p.subId}"`:""}>${esc(p.name)}</span>
         ${p.yours?`<span class="you-tag" title="Owned by you — packages under ernie/ are yours; peers in this role can't overwrite them.">🛡 yours</span>`:""}
+        ${p.model?`<span class="model-tag" title="A model artifact, governed exactly like data">▣ model</span>`:""}
         ${p.sub?`<span class="sub-tag">subscribed</span>`:""}
       </div></td>
       <td>${p.sub?`<span class="vol-pill"><span class="d" style="background:var(--granted)"></span>Domain</span>`:volPill(p.volume)}</td>
@@ -892,8 +934,10 @@ function packagesTable(r){
 }
 
 function pkgHint(){
-  return `<div class="hint"><span class="k">Tip</span> Packages are the shoppable unit. Switch to
-    <b class="muted">Objects</b> for raw files (browsable, never shopped) or
+  return `<div class="hint"><span class="k">Tip</span> A package is the default kind of
+    <b class="muted">artifact</b> — tables and models are artifacts too, just typed. A Steward
+    publishes any of them as an <b class="muted">Asset</b> (one Volume) or <b class="muted">Product</b>
+    (many). Switch to <b class="muted">Objects</b> for raw files (browsable, never shopped) or
     <b class="muted">Tables</b> for registered tabular data.</div>`;
 }
 
@@ -959,7 +1003,8 @@ function objectsTree(r){
 
   return `${showing}${body}
     <div class="hint"><span class="k">Note</span> Raw objects are browsable here but are
-    <b class="muted">never units of shopping</b> — only packages, products & tables are publishable.</div>`;
+    <b class="muted">never units of shopping</b> — to publish, they must be part of an artifact.
+    Artifacts (packages, tables, models) shop as <b class="muted">Assets</b> &amp; <b class="muted">Products</b>.</div>`;
 }
 
 // granted Domain tables flow back into the Tables mode
@@ -983,15 +1028,15 @@ function tablesTable(r){
       <td class="updated">${esc(t.rows)}</td>
       <td class="updated">${esc(t.cols)}</td>
       <td>${t.sub ? stateBadge("granted")
-            : t.yours ? `<button class="ghost-btn accent" data-act="createAsset" data-id="${esc(t.name)}" title="Publish this table by wrapping it in a data asset">＋ New data asset</button>`
+            : t.yours ? `<button class="ghost-btn accent" data-act="createAsset" data-id="${esc(t.name)}" title="Publish this table artifact by wrapping it in an Asset">＋ New Asset</button>`
             : `<span class="muted" style="font-size:12px">role-shared</span>`}</td>
     </tr>`;
   const subGroup = subs.length
     ? `<tr class="grp-row"><td colspan="5"><span style="color:var(--granted)">● Subscribed — granted tables</span> · ${subs.length}</td></tr>${subs.map(rowHtml).join("")}`
     : "";
   return `<table class="tbl">${head}<tbody>${subGroup}${rows.map(rowHtml).join("")}</tbody></table>
-    <div class="hint"><span class="k">First-class</span> A table is content — publish it by wrapping
-    it in a <b class="muted">data asset</b> (one Volume), or request others' table-assets in the
+    <div class="hint"><span class="k">First-class</span> A table is an artifact — a Steward publishes it
+    by wrapping it in an <b class="muted">Asset</b> (one Volume), or request others' table Assets in the
     <span class="link" data-act="domain">Domain</span>.</div>`;
 }
 
@@ -1016,6 +1061,8 @@ function stateBadge(s){
   return `<span class="badge-state" style="color:${m[1]}">${m[0]}</span>`;
 }
 function lockGlyph(d){ return d.state==="granted" ? `<span style="color:var(--granted)">●</span>` : `🔒`; }
+// Published nouns are always Capitalized (a Steward's governed unit), vs. lowercase user artifacts.
+function nounLabel(d){ return d.kind==="product" ? "Product" : "Asset"; }
 
 function domainView(r){
   const tab = state.domainTab;
@@ -1050,9 +1097,10 @@ function domBrowse(){
         : `<input type="checkbox" disabled>`}</td>
       <td><div class="nm-cell"><span class="lk">${lockGlyph(d)}</span>
         <span class="path link" data-act="inspect" data-id="${d.id}">${esc(d.name)}</span>
-        ${d.tableBacked?`<span class="tbl-tag" title="A single-Volume asset whose content is a registered table">▦ table</span>`:""}</div></td>
+        ${d.tableBacked?`<span class="tbl-tag" title="An Asset wrapping a registered table artifact">▦ table</span>`:""}
+        ${d.modelBacked?`<span class="model-tag" title="An Asset wrapping a model artifact — governed exactly like data">▣ model</span>`:""}</div></td>
       <td class="owner">${esc(d.owner)}</td>
-      <td class="muted">${d.kind}</td>
+      <td class="muted">${nounLabel(d)}</td>
       <td>${stateBadge(d.state)}</td>
     </tr>`;
   }).join("");
@@ -1116,7 +1164,7 @@ function domPublished(){
   return `<table class="tbl">${head}<tbody>${rows}</tbody></table>
     <div class="shop-foot">
       <div class="hint"><span class="k">Owner view</span> grant / decline requests inline · change shoppability</div>
-      <button class="cta-btn" data-act="createAsset">＋ New data asset</button>
+      <button class="cta-btn" data-act="createAsset">＋ New Asset</button>
     </div>`;
 }
 
@@ -1141,7 +1189,7 @@ function subscribedView(r){
     <div class="ws-head">
       <div class="ws-eyebrow" style="color:var(--granted)">● Subscribed · unlocked</div>
       <div class="ws-title">${esc(d.name)}</div>
-      <div class="ws-sub">${d.kind} · ${esc(d.owner)} · ${d.packages} packages ·
+      <div class="ws-sub">${nounLabel(d)} · ${esc(d.owner)} · ${d.packages} packages ·
         now in <b>general + content search</b>, mixed with your own data.</div>
     </div>
     <div class="granted-banner">🎉 Granted — contents unlocked for read, browse, preview & download. No more 🔒.</div>
@@ -1177,8 +1225,8 @@ function visionView(r){
       </div>
       <div class="level">
         <div class="lv-n">03</div><div class="lv-h">Stewardship — read-only inter-team grants</div>
-        <p>A Steward turns owned data into <b>Data Products</b> and grants them to other roles
-           through the <b>Domain</b>. Cross-team sharing that stays read-only and revocable.</p>
+        <p>A Steward turns users' artifacts into <b>Assets</b> &amp; <b>Products</b> and grants them to other
+           roles through the <b>Domain</b>. Cross-team sharing that stays read-only and revocable.</p>
         <div class="lv-tag live">Live · see the <span class="link" data-act="domain">Domain</span></div>
       </div>
     </div>
@@ -1188,7 +1236,7 @@ function visionView(r){
       ${teaser("🪄","Low-friction external sharing","roadmap",
         "Collapse today's bucket → role → policy → user → push → share chain into a near one-step, Google-Drive-style action. Pick data, pick who, send.")}
       ${teaser("▦","Tables as first-class","roadmap",
-        "Registered tables become a shoppable unit alongside Packages — query, preview, and request a table the same way you request a product. Stubbed in the Tables mode today.")}
+        "Registered tables become a shoppable unit alongside Packages — query, preview, and request a table the same way you request any Asset. Stubbed in the Tables mode today.")}
       ${teaser("🔔","Collaboration & notifications","soon",
         "Owners and Stewards get notified on changes to what they own, GitHub-PR style. Undesigned today — shown here as intent, not a working feature.")}
       ${teaser("🛡","Filtering ≠ access control","live",
@@ -1234,19 +1282,52 @@ function modalInspect(m){
     ? `<button class="cta-btn" data-act="openSub" data-id="${d.id}">Open in workspace ▸</button>`
     : `<button class="ghost-btn" data-act="addCart" data-id="${d.id}">Add to request</button>
        <button class="cta-btn" data-act="requestOne" data-id="${d.id}">Request subscription ▸</button>`;
+  const fileLabel = d.modelBacked ? "Model files (visible)" : "File names (visible)";
   return `
     <div class="dlg-head">
       <div><span class="lk">${lockGlyph(d)}</span> <b>${esc(d.name)}</b>
-        <div class="dlg-sub">${d.kind} · ${esc(d.owner)} · ${stateBadge(d.state)}</div></div>
+        ${d.modelBacked?`<span class="model-tag" title="A model artifact, published as a typed Asset">▣ model</span>`:""}
+        <div class="dlg-sub">${nounLabel(d)} · ${esc(d.owner)} · ${stateBadge(d.state)}</div></div>
       ${mClose()}
     </div>
     <div class="dlg-body">
+      ${d.modelBacked ? modelCard(d) : ""}
       <div class="panel-label">Metadata (visible)</div>
       <div class="meta-grid">${metaRows}</div>
-      <div class="panel-label">File names (visible)</div>
+      <div class="panel-label">${fileLabel}</div>
       <div class="fn-box">${fileList}${lock}</div>
     </div>
     <div class="dlg-foot">${actions}</div>`;
+}
+
+// A model card is just typed metadata — training data, performance, applicability domain —
+// the generalization of the existing quality/provenance indicators. No separate model registry.
+function modelCard(d){
+  const c=d.card||{};
+  const TIER_LABEL = {
+    foundation: "Public / foundation · direct access",
+    finetuned:  "Private / fine-tuned · granted access",
+  };
+  const tier = TIER_LABEL[d.tier] || "Asset · granted access";
+  const cardRows = [
+    ["Training data", c.training],
+    ["Performance", c.performance],
+    ["Applicability", c.applicability],
+    ["Access tier", tier],
+  ].filter(([,v])=>v).map(([k,v])=>
+    `<span class="ck">${esc(k)}</span><span class="cv">${esc(v)}</span>`).join("");
+  // Provenance is intrinsic: the card points back at the single Data Product used to produce it.
+  // The grant is a clean derived-asset grant — never a backdoor to the producing product's data.
+  const prov = d.producedBy && domById(d.producedBy)
+    ? `<div class="prov-link">↳ trained on →
+        <span class="link" data-act="inspect" data-id="${d.producedBy}">${esc(domById(d.producedBy).name)}</span>
+        <div class="muted" style="margin-top:4px">Lineage only — a grant unlocks the model, not the producing Product's data.</div></div>`
+    : "";
+  return `
+    <div class="panel-label">Model card</div>
+    <div class="card-grid">${cardRows}</div>
+    ${prov}
+    <div class="api-note">Access path: <code>quilt3</code> + API key — the affordance a pipeline or notebook uses to pull the weights.</div>`;
 }
 
 function modalRequest(m){
@@ -1255,7 +1336,7 @@ function modalRequest(m){
   const rows = items.map(d=>`
     <div class="req-item"><input type="checkbox" checked disabled>
       <span class="path">${esc(d.name)}</span>
-      <span class="muted">${d.kind} · ${esc(d.owner)}</span>
+      <span class="muted">${nounLabel(d)} · ${esc(d.owner)}</span>
       <span class="goesto">→ goes to: ${esc(d.owner)}</span></div>`).join("");
   return `
     <div class="dlg-head"><b>Request subscriptions</b>${mClose()}</div>
@@ -1280,12 +1361,12 @@ function modalCreateAsset(m){
   const seedVol = seedT && seedT.volume;
   const nameDefault = seedT ? `${seedT.name} (table)` : "Study X — assay results";
   return `
-    <div class="dlg-head"><b>New data asset</b>${mClose()}</div>
+    <div class="dlg-head"><b>New Asset</b>${mClose()}</div>
     <div class="dlg-body">
-      ${seedT?`<div class="seed-note">▦ Publishing the table <b>${esc(seedT.name)}</b> — a table is content,
-        so it's exposed as a single-Volume <b>data asset</b> (subset = this table).</div>`:""}
+      ${seedT?`<div class="seed-note">▦ Publishing the table artifact <b>${esc(seedT.name)}</b> — a table is content,
+        so it's exposed as a single-Volume <b>Asset</b> (subset = this table).</div>`:""}
       <div class="field"><label>Source Volume</label>
-        <select class="inp">${seedVol?`<option>${esc(seedVol)}</option>`:`<option>(an asset = one Volume)</option>`}
+        <select class="inp">${seedVol?`<option>${esc(seedVol)}</option>`:`<option>(an Asset = one Volume)</option>`}
           ${vols.filter(v=>v.label!==seedVol).map(v=>`<option>${esc(v.label)}</option>`).join("")}</select></div>
       <div class="panel-label">Granularity</div>
       <label class="radio"><input type="radio" name="gran"> Whole Volume — all packages + tables, one action</label>
@@ -1305,16 +1386,16 @@ function modalCreateAsset(m){
     </div>
     <div class="dlg-foot">
       <button class="ghost-btn" data-act="closeModal">Cancel</button>
-      <button class="cta-btn" data-act="createDraft" data-kind="asset">Create data asset</button>
+      <button class="cta-btn" data-act="createDraft" data-kind="asset">Create Asset</button>
     </div>`;
 }
 
 function modalCreateProduct(m){
   const vols = role().volumes;
   return `
-    <div class="dlg-head"><b>New data product</b>${mClose()}</div>
+    <div class="dlg-head"><b>New Product</b>${mClose()}</div>
     <div class="dlg-body">
-      <div class="muted" style="margin-bottom:10px">A product can span multiple Volumes (vs. an asset = one Volume).</div>
+      <div class="muted" style="margin-bottom:10px">A Product can span multiple Volumes (vs. an Asset = one Volume).</div>
       <div class="panel-label">Define membership by</div>
       <div class="seg" style="margin:4px 0 10px"><button class="on">Query</button><button>Manual selection</button></div>
       <input class="inp" value='study_id = "X"'>
@@ -1322,7 +1403,7 @@ function modalCreateProduct(m){
         <div class="chips-inline">${vols.map((v,i)=>`<label class="chip"><input type="checkbox" ${i<2?"checked":""}> ${esc(v.label)}</label>`).join("")}</div></div>
       <div class="match-note">Resolves to 38 packages across 2 Volumes</div>
       <div class="match-box mono">study-x/run-001 … run-030&nbsp;&nbsp;(assay-results)<br>cohort-2025/study-x/*&nbsp;&nbsp;(study-archive)</div>
-      <div class="panel-label">Membership <span class="warn">⚠ open product decision — spec §7</span></div>
+      <div class="panel-label">Membership <span class="warn">⚠ open Product decision — spec §7</span></div>
       <label class="radio"><input type="radio" name="mem" checked> Dynamic — new matching packages auto-included later</label>
       <label class="radio"><input type="radio" name="mem"> Static — freeze to the 38 packages matching now</label>
       <div class="field"><label>Product name</label><input class="inp" id="productName" value="Study X — full release"></div>
@@ -1330,7 +1411,7 @@ function modalCreateProduct(m){
     </div>
     <div class="dlg-foot">
       <button class="ghost-btn" data-act="closeModal">Cancel</button>
-      <button class="cta-btn" data-act="createDraft" data-kind="product">Create data product</button>
+      <button class="cta-btn" data-act="createDraft" data-kind="product">Create Product</button>
     </div>`;
 }
 
@@ -1346,12 +1427,12 @@ function modalPublish(m){
   </div>`;
   return `
     <div class="dlg-head"><div><b>${esc(d.name)}</b>
-      <div class="dlg-sub">${d.kind} · ${d.kind==="table"?`${esc(d.rows)} rows · ${esc(d.cols)} cols`:`${d.packages} packages`} · ${d.volumes.length} Volume${d.volumes.length>1?"s":""}</div></div>${mClose()}</div>
+      <div class="dlg-sub">${nounLabel(d)} · ${d.tableBacked?`${esc(d.rows)} rows · ${esc(d.cols)} cols`:`${d.packages} packages`} · ${d.volumes.length} Volume${d.volumes.length>1?"s":""}</div></div>${mClose()}</div>
     <div class="dlg-body">
       <div class="panel-label">Lifecycle</div>${bar}
       <div class="step-card ${at>=1?'done':''}">
         <div class="step-h">Step 2 · Publish to a Domain ${at>=1?'<span class="ok">✓ published</span>':''}</div>
-        <div class="muted">Registers this product in the Domain catalog. Not yet visible to shop.</div>
+        <div class="muted">Registers this ${nounLabel(d)} in the Domain catalog. Not yet visible to shop.</div>
         ${at<1?`<button class="cta-btn" data-act="doPublish">Publish</button>`:""}
       </div>
       <div class="step-card ${at>=2?'done':(at<1?'disabled':'')}">
@@ -1488,7 +1569,7 @@ function resolveRequest(id, who, outcome){
 let idSeq=1;
 function createDraft(kind){
   const nameEl=document.getElementById(kind==="asset"?"assetName":"productName");
-  const name=(nameEl&&nameEl.value.trim())||(kind==="asset"?"New data asset":"New data product");
+  const name=(nameEl&&nameEl.value.trim())||(kind==="asset"?"New Asset":"New Product");
   const vols=role().volumes;
   // a table seed produces a single-Volume asset whose content is that table
   const seedTable = (kind==="asset" && state.modal && state.modal.table)
@@ -1497,7 +1578,7 @@ function createDraft(kind){
     id:"mine-"+(idSeq++), name, kind:"asset", owner:"ernie@", tableBacked:true,
     volumes:[seedTable.volume||vols[0].label], packages:1, rows:seedTable.rows||"—", cols:seedTable.cols||"—",
     membership:"subset · 1 table", state:"created", mine:true,
-    meta:{ rows:seedTable.rows||"—", columns:seedTable.cols||"—", description:`Single-Volume asset wrapping table ${seedTable.name}.` },
+    meta:{ rows:seedTable.rows||"—", columns:seedTable.cols||"—", description:`Single-Volume Asset wrapping the table artifact ${seedTable.name}.` },
     files:[{ dir:"columns:", names:["…"] }], pkgs:[seedTable.name], requests:[],
   } : {
     id:"mine-"+(idSeq++), name, kind, owner:"ernie@",

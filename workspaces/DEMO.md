@@ -47,18 +47,31 @@ Click **🛒 Domain** in the rail. Same shell, same table, same status words.
 
 ## 4 · Publish side (45s)
 
-- **＋ New data product** → query (`study_id = "X"`), scope Volumes, **dynamic vs static**
+- **＋ New Product** → query (`study_id = "X"`), scope Volumes, **dynamic vs static**
   (flagged as an open decision). Create.
 - Walk the **lifecycle bar**: `created → publish → make shoppable`. Three separable steps.
 - In **Domain ▸ Published**: your items with **Grant / Decline** on each incoming request.
 
 ## 5 · Tables are first-class (20s)
 
-- **Tables** mode → your `ernie_qc_metrics` has **＋ New data asset**. A table is *content*,
-  so you publish it by wrapping it in a single-Volume **data asset** (subset = that table) —
+- **Tables** mode → your `ernie_qc_metrics` has **＋ New Asset**. A table is an *artifact*,
+  so you publish it by wrapping it in a single-Volume **Asset** (subset = that table) —
   same `create → publish → shoppable` path, no special noun.
-- In the **Domain**, those show as type **asset** with a `▦ table` tag — they shop exactly
-  like any other asset.
+- In the **Domain**, those show as type **Asset** with a `▦ table` tag — they shop exactly
+  like any other Asset.
+
+## 5b · Models are governed exactly like data (30s)
+
+- In the **🛒 Domain ▸ Browse**, two models show as type **Asset** with a `▣ model` tag —
+  no model registry, no third noun (the model is an *artifact* wrapped in an Asset).
+  **BioFoundation-1B** is `● granted` (public / foundation → direct access, already unlocked);
+  **Onco-Response v2** is `○ shoppable` (private / fine-tuned → shops like any data).
+- Inspect **Onco-Response v2** → a standardized **model card** (training data, performance,
+  applicability) with a provenance link **↳ trained on → Study X — full release**. Click it:
+  you can see the producing Product's card but its contents stay `🔒` — *the model grant is a
+  clean derived-Asset grant, never a backdoor to the training data.*
+- Request it → on grant it folds into **Packages** beside your own work, still tagged `▣ model`.
+  "Models are governed exactly like data — we are not becoming an ML platform."
 
 ## 6 · The framing — three levels of sharing (30s)
 
