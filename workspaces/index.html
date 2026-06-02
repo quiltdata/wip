@@ -878,8 +878,11 @@ function matchFocus(p){
 function subscribedPkgs(){
   const out=[];
   DOMAIN.filter(d=>!d.mine && d.state==="granted" && !d.tableBacked).forEach(d=>{
+    // Direct-access assets (public foundation models, role-owned volumes) were never
+    // shopped for, so "just granted" would misrepresent them — they've always been accessible.
+    const updated = d.requestedAt==="public" ? "direct access" : "just granted";
     (d.pkgs||[]).forEach(name=>out.push({
-      name, volume:"subscribed", owner:d.owner, updated:"just granted", yours:false, sub:true, subId:d.id, model:d.modelBacked }));
+      name, volume:"subscribed", owner:d.owner, updated, yours:false, sub:true, subId:d.id, model:d.modelBacked }));
   });
   return out;
 }
@@ -1301,9 +1304,11 @@ function modalInspect(m){
 // the generalization of the existing quality/provenance indicators. No separate model registry.
 function modelCard(d){
   const c=d.card||{};
-  const tier = d.tier==="foundation"
-    ? `Public / foundation · direct access`
-    : `Private / fine-tuned · granted access`;
+  const TIER_LABEL = {
+    foundation: "Public / foundation · direct access",
+    finetuned:  "Private / fine-tuned · granted access",
+  };
+  const tier = TIER_LABEL[d.tier] || "Asset · granted access";
   const cardRows = [
     ["Training data", c.training],
     ["Performance", c.performance],
