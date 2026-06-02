@@ -320,6 +320,17 @@
   .nm-cell .link:hover{color:var(--accent)}
   .sub-tag{font-size:10px;color:var(--granted);border:1px solid #2c5e48;padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
   .tbl-tag{font-size:10px;color:var(--txt-mut);border:1px solid var(--line);padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  .model-tag{font-size:10px;color:var(--accent);border:1px solid var(--accent);padding:1px 6px;border-radius:999px;letter-spacing:.04em;font-weight:600}
+  /* model card (inspect) — typed-metadata generalization of the quality/provenance indicators */
+  .card-grid{display:grid;grid-template-columns:max-content 1fr;gap:6px 16px;font-size:13px;margin-bottom:10px}
+  .card-grid .ck{color:var(--txt-mut);font-weight:600;white-space:nowrap}
+  .card-grid .cv{color:var(--txt)}
+  .prov-link{background:var(--inset);border:1px solid var(--line);border-left:2px solid var(--accent);
+    border-radius:8px;padding:9px 13px;font-size:12.5px;color:var(--txt-mut);margin-top:4px}
+  .prov-link .link{color:var(--accent);cursor:pointer;font-weight:600}
+  .prov-link .link:hover{text-decoration:underline}
+  .api-note{font-size:11.5px;color:var(--txt-dim);margin-top:8px}
+  .api-note code{background:var(--inset);border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--txt-mut)}
   .seed-note{background:var(--inset);border:1px solid var(--line);border-left:2px solid var(--accent);
     border-radius:8px;padding:10px 14px;font-size:12.5px;color:var(--txt-mut);margin-bottom:6px}
   .seed-note b{color:var(--txt)}
@@ -608,6 +619,33 @@ let DOMAIN = [
     files:[{ dir:"columns:", names:["protein_id","sample_id","intensity","…21 more"] }],
     pkgs:["proteomics_intensities"] },
 
+  // --- models published as single-Volume assets (issue #2: a model is content wrapped in a typed asset) ---
+  // Public / foundation → direct access (already unlocked, like a Volume the role owns outright).
+  { id:"model-foundation", name:"BioFoundation-1B", kind:"asset", owner:"core", modelBacked:true, tier:"foundation",
+    volumes:["shared-ref"], packages:1, membership:"public model · direct access",
+    state:"granted", mine:false, requestedAt:"public",
+    meta:{ task:"Molecular representation / embeddings", architecture:"Transformer · 1.2B params",
+           license:"Apache-2.0 (public)", released:"2026-01-15",
+           description:"Open foundation model for molecular embeddings (single-Volume asset wrapping model weights)." },
+    card:{ training:"Public multi-omics corpus (open release)",
+           performance:"AUROC 0.91 on the open held-out benchmark",
+           applicability:"General molecular representation — not validated for clinical decisions" },
+    files:[{ dir:"models/biofoundation-1b/", names:["weights.safetensors","config.json","tokenizer.json"] }],
+    pkgs:["models/biofoundation-1b"] },
+
+  // Private / fine-tuned → granted access (shops through the same request→grant flow as any shared asset).
+  { id:"model-onco", name:"Onco-Response v2", kind:"asset", owner:"team-a", modelBacked:true, tier:"finetuned",
+    volumes:["assay-results"], packages:1, membership:"private model · subscription",
+    state:"shoppable", mine:false, producedBy:"studyx-full",
+    meta:{ task:"Drug-response prediction", architecture:"Fine-tuned on BioFoundation-1B",
+           license:"Internal — Acme Bio only", released:"2026-05-22",
+           description:"Fine-tuned response predictor (single-Volume asset wrapping model weights)." },
+    card:{ training:"Trained on the Study X — full release Data Product",
+           performance:"AUROC 0.88 · PR-AUC 0.79 (Study X holdout)",
+           applicability:"Oncology response prediction — in-domain to Study X cohorts only" },
+    files:[{ dir:"models/onco-response-v2/", names:["weights.safetensors","config.json","metrics.json"] }],
+    pkgs:["models/onco-response-v2"] },
+
   // --- mine: things the user has published (Published tab, screen 13) ---
   { id:"mine-qc", name:"Ernie — QC metrics", kind:"asset", owner:"ernie@",
     volumes:["assay-results"], packages:12, membership:"subset (prefix study-x/)",
@@ -841,7 +879,7 @@ function subscribedPkgs(){
   const out=[];
   DOMAIN.filter(d=>!d.mine && d.state==="granted" && !d.tableBacked).forEach(d=>{
     (d.pkgs||[]).forEach(name=>out.push({
-      name, volume:"subscribed", owner:d.owner, updated:"just granted", yours:false, sub:true, subId:d.id }));
+      name, volume:"subscribed", owner:d.owner, updated:"just granted", yours:false, sub:true, subId:d.id, model:d.modelBacked }));
   });
   return out;
 }
@@ -862,6 +900,7 @@ function packagesTable(r){
         ${iconPkg()}
         <span class="path ${p.sub?'link':''}" ${p.sub?`data-act="openSub" data-id="${p.subId}"`:""}>${esc(p.name)}</span>
         ${p.yours?`<span class="you-tag" title="Owned by you — packages under ernie/ are yours; peers in this role can't overwrite them.">🛡 yours</span>`:""}
+        ${p.model?`<span class="model-tag" title="A trained model, governed exactly like data">▣ model</span>`:""}
         ${p.sub?`<span class="sub-tag">subscribed</span>`:""}
       </div></td>
       <td>${p.sub?`<span class="vol-pill"><span class="d" style="background:var(--granted)"></span>Domain</span>`:volPill(p.volume)}</td>
@@ -1050,7 +1089,8 @@ function domBrowse(){
         : `<input type="checkbox" disabled>`}</td>
       <td><div class="nm-cell"><span class="lk">${lockGlyph(d)}</span>
         <span class="path link" data-act="inspect" data-id="${d.id}">${esc(d.name)}</span>
-        ${d.tableBacked?`<span class="tbl-tag" title="A single-Volume asset whose content is a registered table">▦ table</span>`:""}</div></td>
+        ${d.tableBacked?`<span class="tbl-tag" title="A single-Volume asset whose content is a registered table">▦ table</span>`:""}
+        ${d.modelBacked?`<span class="model-tag" title="A single-Volume asset whose content is a trained model — governed exactly like data">▣ model</span>`:""}</div></td>
       <td class="owner">${esc(d.owner)}</td>
       <td class="muted">${d.kind}</td>
       <td>${stateBadge(d.state)}</td>
@@ -1234,19 +1274,50 @@ function modalInspect(m){
     ? `<button class="cta-btn" data-act="openSub" data-id="${d.id}">Open in workspace ▸</button>`
     : `<button class="ghost-btn" data-act="addCart" data-id="${d.id}">Add to request</button>
        <button class="cta-btn" data-act="requestOne" data-id="${d.id}">Request subscription ▸</button>`;
+  const fileLabel = d.modelBacked ? "Model files (visible)" : "File names (visible)";
   return `
     <div class="dlg-head">
       <div><span class="lk">${lockGlyph(d)}</span> <b>${esc(d.name)}</b>
+        ${d.modelBacked?`<span class="model-tag" title="A trained model, wrapped as a typed asset">▣ model</span>`:""}
         <div class="dlg-sub">${d.kind} · ${esc(d.owner)} · ${stateBadge(d.state)}</div></div>
       ${mClose()}
     </div>
     <div class="dlg-body">
+      ${d.modelBacked ? modelCard(d) : ""}
       <div class="panel-label">Metadata (visible)</div>
       <div class="meta-grid">${metaRows}</div>
-      <div class="panel-label">File names (visible)</div>
+      <div class="panel-label">${fileLabel}</div>
       <div class="fn-box">${fileList}${lock}</div>
     </div>
     <div class="dlg-foot">${actions}</div>`;
+}
+
+// A model card is just typed metadata — training data, performance, applicability domain —
+// the generalization of the existing quality/provenance indicators. No separate model registry.
+function modelCard(d){
+  const c=d.card||{};
+  const tier = d.tier==="foundation"
+    ? `Public / foundation · direct access`
+    : `Private / fine-tuned · granted access`;
+  const cardRows = [
+    ["Training data", c.training],
+    ["Performance", c.performance],
+    ["Applicability", c.applicability],
+    ["Access tier", tier],
+  ].filter(([,v])=>v).map(([k,v])=>
+    `<span class="ck">${esc(k)}</span><span class="cv">${esc(v)}</span>`).join("");
+  // Provenance is intrinsic: the card points back at the single Data Product used to produce it.
+  // The grant is a clean derived-asset grant — never a backdoor to the producing product's data.
+  const prov = d.producedBy && domById(d.producedBy)
+    ? `<div class="prov-link">↳ trained on →
+        <span class="link" data-act="inspect" data-id="${d.producedBy}">${esc(domById(d.producedBy).name)}</span>
+        <div class="muted" style="margin-top:4px">Lineage only — a grant unlocks the model, not the producing product's data.</div></div>`
+    : "";
+  return `
+    <div class="panel-label">Model card</div>
+    <div class="card-grid">${cardRows}</div>
+    ${prov}
+    <div class="api-note">Access path: <code>quilt3</code> + API key — the affordance a pipeline or notebook uses to pull the weights.</div>`;
 }
 
 function modalRequest(m){

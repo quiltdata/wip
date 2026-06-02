@@ -60,6 +60,19 @@ Click **🛒 Domain** in the rail. Same shell, same table, same status words.
 - In the **Domain**, those show as type **asset** with a `▦ table` tag — they shop exactly
   like any other asset.
 
+## 5b · Models are governed exactly like data (30s)
+
+- In the **🛒 Domain ▸ Browse**, two models show as type **asset** with a `▣ model` tag —
+  no model registry, no third noun. **BioFoundation-1B** is `● granted` (public /
+  foundation → direct access, already unlocked); **Onco-Response v2** is `○ shoppable`
+  (private / fine-tuned → shops like any data).
+- Inspect **Onco-Response v2** → a standardized **model card** (training data, performance,
+  applicability) with a provenance link **↳ trained on → Study X — full release**. Click it:
+  you can see the producing product's card but its contents stay `🔒` — *the model grant is a
+  clean derived-asset grant, never a backdoor to the training data.*
+- Request it → on grant it folds into **Packages** beside your own work, still tagged `▣ model`.
+  "Models are governed exactly like data — we are not becoming an ML platform."
+
 ## 6 · The framing — three levels of sharing (30s)
 
 Click **🔗 Sharing model**:

@@ -77,6 +77,19 @@ item **just appears** — under **Subscribed** in the rail, unlocked in its deta
   cards for low-friction external sharing (5), tables-as-first-class (7), and
   collaboration/notifications (8, marked "coming soon" per the brief's guardrail).
 
+**Pass 4 — models as governed assets (done).** AI/ML models shop through the *same*
+substrate as data — no new noun, no separate model registry:
+
+- A published model shows in the Domain as `type: asset` with a `▣ model` tag (mirroring the
+  `▦ table` treatment). The normative vocabulary stays **asset** and **product**.
+- **Inspect** shows a standardized **model card** (training data, performance, applicability)
+  with an intrinsic provenance link — *trained on → the single Data Product that produced it*.
+  A grant is a clean derived-asset grant; it never backdoors the producing product's data.
+- **Two tiers, same status vocabulary:** a **public/foundation** model is direct-access
+  (already `● granted`, unlocked), a **private/fine-tuned** model shops via the
+  `○ shoppable → ◌ requested → ● granted` flow. On grant it folds into **Packages** beside
+  your own work, still tagged `▣ model`. Access path is framed as `quilt3` + API key (teaser).
+
 **Out of scope by design (per brief):** arbitrary peer-to-peer sharing (sharing stays
 role-scoped); notification depth. The Sharing model view states this explicitly so the
 boundary reads as intentional, not a gap.
