@@ -45,7 +45,7 @@ Use the `☀/☾` control (top-right) to switch dark/light.
   own recent/owned work leads; the rest of the role's data is one toggle away.
 - **Objects / Packages / Tables** modes; per-Volume and live filtering; global search.
 - **Role switcher** that swaps the whole workspace (role ≡ workspace).
-- An empty **Subscribed** rail section + **Domain** / **New asset·product** entries that
+- An empty **Subscribed** rail section + **Domain** / **New Asset·Product** entries that
   foreshadow where pass 2 plugs in — without faking depth.
 
 **Pass 2 — shopping overlay (done).** The Domain reuses the same shell — one surface,
@@ -58,8 +58,8 @@ three tabs:
 - **My requests** (23): per-item `◌ requested / ● granted / ✕ declined`, re-request.
 - **Published** (publisher, screen 13): your published items with inline **Grant / Decline**
   per incoming request and a **Make shoppable** control.
-- **Create → publish → shoppable** (10·11·12): create a data asset (one Volume) or product
-  (spans Volumes), then walk the lifecycle bar.
+- **Create → publish → shoppable** (10·11·12): publish an Asset (one Volume) or Product
+  (spans Volumes) from a user's artifacts, then walk the lifecycle bar.
 
 The **`○ shoppable → ◌ requested → ● granted`** state machine is live. Sending a request
 shows `◌ requested`, then (with fake latency, to sell the feel) the owner "grants" and the
@@ -80,11 +80,12 @@ item **just appears** — under **Subscribed** in the rail, unlocked in its deta
 **Pass 4 — models as governed assets (done).** AI/ML models shop through the *same*
 substrate as data — no new noun, no separate model registry:
 
-- A published model shows in the Domain as `type: asset` with a `▣ model` tag (mirroring the
-  `▦ table` treatment). The normative vocabulary stays **asset** and **product**.
+- A published model shows in the Domain as `type: Asset` with a `▣ model` tag (mirroring the
+  `▦ table` treatment). A model is an **artifact** wrapped in an **Asset** — the normative
+  published nouns stay **Asset** and **Product**, no new noun.
 - **Inspect** shows a standardized **model card** (training data, performance, applicability)
-  with an intrinsic provenance link — *trained on → the single Data Product that produced it*.
-  A grant is a clean derived-asset grant; it never backdoors the producing product's data.
+  with an intrinsic provenance link — *trained on → the single Product that produced it*.
+  A grant is a clean derived-Asset grant; it never backdoors the producing Product's data.
 - **Two tiers, same status vocabulary:** a **public/foundation** model is direct-access
   (already `● granted`, unlocked), a **private/fine-tuned** model shops via the
   `○ shoppable → ◌ requested → ● granted` flow. On grant it folds into **Packages** beside
